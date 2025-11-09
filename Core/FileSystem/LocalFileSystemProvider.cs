@@ -12,6 +12,48 @@ public class LocalFileSystemProvider : IFileSystemProvider
     public char AltDirectorySeparatorChar => Path.AltDirectorySeparatorChar;
 
     /// <inheritdoc />
+    public string GetFullPath(string path)
+    {
+        return Path.GetFullPath(path);
+    }
+
+    /// <inheritdoc />
+    public string GetFileName(string path)
+    {
+        return Path.GetFileName(path);
+    }
+
+    /// <inheritdoc />
+    public string GetFileNameWithoutExtension(string path)
+    {
+        return Path.GetFileNameWithoutExtension(path);
+    }
+
+    /// <inheritdoc />
+    public string GetExtension(string path)
+    {
+        return Path.GetExtension(path);
+    }
+
+    /// <inheritdoc />
+    public string? GetDirectoryName(string path)
+    {
+        return Path.GetDirectoryName(path);
+    }
+
+    /// <inheritdoc />
+    public string CombinePath(params string[] paths)
+    {
+        return Path.Combine(paths);
+    }
+
+    /// <inheritdoc />
+    public bool IsPathRooted(string path)
+    {
+        return Path.IsPathRooted(path);
+    }
+
+    /// <inheritdoc />
     public bool FileExists(string path)
     {
         return File.Exists(path);
@@ -160,11 +202,63 @@ public class LocalFileSystemProvider : IFileSystemProvider
     }
 
     /// <inheritdoc />
-    public Task MoveFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default)
+    public Task MoveFileAsync(string sourcePath, string destinationPath, bool overwrite = false,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        File.Move(sourcePath, destinationPath);
+        File.Move(sourcePath, destinationPath, overwrite);
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<Stream> OpenReadAsync(string path, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            useAsync: true
+        );
+
+        return Task.FromResult<Stream>(stream);
+    }
+
+    /// <inheritdoc />
+    public Task<Stream> OpenWriteAsync(string path, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var stream = new FileStream(
+            path,
+            FileMode.OpenOrCreate,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            useAsync: true
+        );
+
+        return Task.FromResult<Stream>(stream);
+    }
+
+    /// <inheritdoc />
+    public Task<Stream> CreateAsync(string path, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var stream = new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            useAsync: true
+        );
+
+        return Task.FromResult<Stream>(stream);
     }
 
     /// <inheritdoc />
@@ -250,6 +344,7 @@ public class LocalFileSystemProvider : IFileSystemProvider
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var file in Directory.EnumerateFiles(path, searchPattern, searchOption))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -263,6 +358,7 @@ public class LocalFileSystemProvider : IFileSystemProvider
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var directory in Directory.EnumerateDirectories(path, searchPattern, searchOption))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -271,57 +367,16 @@ public class LocalFileSystemProvider : IFileSystemProvider
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<string> EnumerateFileSystemEntriesAsync(string path, string searchPattern = "*",
+    public async IAsyncEnumerable<string> EnumerateEntriesAsync(string path, string searchPattern = "*",
         SearchOption searchOption = SearchOption.TopDirectoryOnly,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var entry in Directory.EnumerateFileSystemEntries(path, searchPattern, searchOption))
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return entry;
         }
-    }
-
-    /// <inheritdoc />
-    public string GetFullPath(string path)
-    {
-        return Path.GetFullPath(path);
-    }
-
-    /// <inheritdoc />
-    public string GetFileName(string path)
-    {
-        return Path.GetFileName(path);
-    }
-
-    /// <inheritdoc />
-    public string GetFileNameWithoutExtension(string path)
-    {
-        return Path.GetFileNameWithoutExtension(path);
-    }
-
-    /// <inheritdoc />
-    public string GetExtension(string path)
-    {
-        return Path.GetExtension(path);
-    }
-
-    /// <inheritdoc />
-    public string? GetDirectoryName(string path)
-    {
-        return Path.GetDirectoryName(path);
-    }
-
-    /// <inheritdoc />
-    public string CombinePath(params string[] paths)
-    {
-        return Path.Combine(paths);
-    }
-
-    /// <inheritdoc />
-    public bool IsPathRooted(string path)
-    {
-        return Path.IsPathRooted(path);
     }
 }
