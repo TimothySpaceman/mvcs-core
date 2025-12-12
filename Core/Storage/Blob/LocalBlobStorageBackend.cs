@@ -1,7 +1,7 @@
 ﻿using Core.Config;
 using Core.Exceptions;
 
-namespace Core.Storage;
+namespace Core.Storage.Blob;
 
 public class LocalBlobStorageBackend : IBlobStorageBackend
 {
@@ -42,14 +42,8 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
     {
         EnsureBlobDir();
         var blobPath = Path.Combine(GetBlobDirPath(), id.ToString());
-        try
-        {
-            return File.OpenRead(blobPath);
-        }
-        catch (FileNotFoundException)
-        {
-            return null;
-        }
+        if (!File.Exists(blobPath)) return null;
+        return File.OpenRead(blobPath);
     }
 
     public void PutBlob(Guid id, Stream contentStream)
@@ -59,5 +53,15 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         using var fileStream = File.Open(blobPath, FileMode.Create);
         contentStream.CopyTo(fileStream);
         contentStream.Seek(0, SeekOrigin.Begin);
+    }
+
+    public bool RemoveBlob(Guid id)
+    {
+        var blobPath = Path.Combine(GetBlobDirPath(), id.ToString());
+
+        if (!File.Exists(blobPath)) return false;
+
+        File.Delete(blobPath);
+        return true;
     }
 }

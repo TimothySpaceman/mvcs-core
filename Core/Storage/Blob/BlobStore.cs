@@ -1,6 +1,6 @@
 ﻿using System.IO.Hashing;
 
-namespace Core.Storage;
+namespace Core.Storage.Blob;
 
 public class BlobStore : IBlobStore
 {
@@ -35,5 +35,16 @@ public class BlobStore : IBlobStore
         var metadata = new BlobMetadata(id, hash.GetHashAndReset(), contentStream.Length);
         _blobs.Add(id, metadata);
         return metadata;
+    }
+
+    public bool Remove(Guid id)
+    {
+        var removed = _blobs.Remove(id);
+        if (removed)
+        {
+            _storage.RemoveBlob(id);
+        }
+
+        return removed;
     }
 }
