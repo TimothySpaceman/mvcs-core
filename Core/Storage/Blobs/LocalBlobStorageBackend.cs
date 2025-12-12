@@ -1,11 +1,11 @@
 ﻿using Core.Config;
 using Core.Exceptions;
 
-namespace Core.Storage.Blob;
+namespace Core.Storage.Blobs;
 
 public class LocalBlobStorageBackend : IBlobStorageBackend
 {
-    private IConfigService _configService;
+    private readonly IConfigService _configService;
 
     public LocalBlobStorageBackend(IConfigService configService)
     {

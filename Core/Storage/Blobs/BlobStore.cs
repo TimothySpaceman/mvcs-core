@@ -1,6 +1,6 @@
 ﻿using System.IO.Hashing;
 
-namespace Core.Storage.Blob;
+namespace Core.Storage.Blobs;
 
 public class BlobStore : IBlobStore
 {

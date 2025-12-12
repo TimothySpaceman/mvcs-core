@@ -1,4 +1,4 @@
-﻿namespace Core.Storage.Blob;
+﻿namespace Core.Storage.Blobs;
 
 public interface IBlobStore
 {

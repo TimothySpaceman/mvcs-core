@@ -1,10 +1,10 @@
-﻿namespace Core.Storage.Blob;
+﻿namespace Core.Storage.Blobs;
 
 public class BlobMetadata
 {
-    public readonly Guid Id;
-    public readonly byte[] Hash;
-    public readonly long Length;
+    public Guid Id { get; }
+    public byte[] Hash { get; }
+    public long Length { get; }
 
     public BlobMetadata(Guid id, byte[] hash, long length)
     {
