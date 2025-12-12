@@ -26,20 +26,18 @@ public class ConfigService : IConfigService
         return Get<string>(key, defaultValue);
     }
 
-    public void Set<T>(string key, T? value)
+    public void Set<T>(string key, T value)
     {
-        if (value == null)
-        {
-            _config.Remove(key);
-        }
-        else
-        {
-            _config[key] = value.ToString();
-        }
+        _config[key] = value?.ToString();
     }
 
-    public void Set(string key, string? value)
+    public void Set(string key, string value)
     {
         Set<string>(key, value);
+    }
+
+    public bool Remove(string key)
+    {
+        return _config.Remove(key);
     }
 }
