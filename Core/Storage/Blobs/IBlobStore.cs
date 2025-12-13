@@ -2,8 +2,8 @@
 
 public interface IBlobStore
 {
-    public BlobMetadata? Get(Guid id);
-    public Stream? GetContent(Guid id);
+    public BlobMetadata? Get(HashId id);
+    public Stream? GetContent(HashId id);
     public BlobMetadata Add(Stream contentStream);
-    public bool Remove(Guid id);
+    public bool Remove(HashId id);
 }

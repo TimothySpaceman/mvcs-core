@@ -1,4 +1,5 @@
-﻿using Core.Config;
+﻿using System.IO.Hashing;
+using Core.Config;
 using Core.Exceptions;
 
 namespace Core.Storage.Blobs;
@@ -29,35 +30,67 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         return Path.Combine(rootDir, blobDir);
     }
 
-    private void EnsureBlobDir()
+    private string EnsureBlobDir()
     {
         var dirPath = GetBlobDirPath();
         if (!Directory.Exists(dirPath))
         {
             Directory.CreateDirectory(dirPath);
         }
+
+        return dirPath;
     }
 
-    public Stream? GetBlob(Guid id)
+    public Stream? GetBlob(HashId id)
     {
-        EnsureBlobDir();
-        var blobPath = Path.Combine(GetBlobDirPath(), id.ToString());
+        var blobPath = Path.Combine(EnsureBlobDir(), id.ToHexString());
         if (!File.Exists(blobPath)) return null;
         return File.OpenRead(blobPath);
     }
 
-    public void PutBlob(Guid id, Stream contentStream)
+    public HashId PutBlob(Stream contentStream)
     {
-        EnsureBlobDir();
-        var blobPath = Path.Combine(GetBlobDirPath(), id.ToString());
-        using var fileStream = File.Open(blobPath, FileMode.Create);
-        contentStream.CopyTo(fileStream);
-        contentStream.Seek(0, SeekOrigin.Begin);
+        var blobDirPath = EnsureBlobDir();
+        var tempBlobPath = Path.Combine(blobDirPath, $"tmp-{Guid.NewGuid()}");
+
+        var hasher = new XxHash128();
+
+        const int bufferSize = 4 * 1024;
+        var buffer = new byte[bufferSize];
+
+        try
+        {
+            using (var fs = new FileStream(tempBlobPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
+            {
+                int bytesRead;
+                while ((bytesRead = contentStream.Read(buffer, 0, bufferSize)) > 0)
+                {
+                    hasher.Append(buffer.AsSpan(0, bytesRead));
+                    fs.Write(buffer, 0, bytesRead);
+                }
+            }
+
+            var hash = new HashId(hasher.GetHashAndReset());
+
+            var blobPath = Path.Combine(blobDirPath, hash.ToHexString());
+            File.Move(tempBlobPath, blobPath, true);
+
+            return hash;
+        }
+        catch
+        {
+            if (File.Exists(tempBlobPath))
+            {
+                File.Delete(tempBlobPath);
+            }
+
+            throw;
+        }
     }
 
-    public bool RemoveBlob(Guid id)
+    public bool RemoveBlob(HashId id)
     {
-        var blobPath = Path.Combine(GetBlobDirPath(), id.ToString());
+        var blobPath = Path.Combine(GetBlobDirPath(), id.ToHexString());
 
         if (!File.Exists(blobPath)) return false;
 

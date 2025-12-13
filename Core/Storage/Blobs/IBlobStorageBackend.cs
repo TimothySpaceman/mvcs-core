@@ -2,7 +2,7 @@
 
 public interface IBlobStorageBackend
 {
-    public Stream? GetBlob(Guid id);
-    public void PutBlob(Guid id, Stream content);
-    public bool RemoveBlob(Guid id);
+    public Stream? GetBlob(HashId id);
+    public HashId PutBlob(Stream content);
+    public bool RemoveBlob(HashId id);
 }

@@ -1,15 +1,13 @@
 ﻿namespace Core.Storage.Blobs;
 
-public class BlobMetadata
+public readonly record struct BlobMetadata
 {
-    public Guid Id { get; }
-    public byte[] Hash { get; }
-    public long Length { get; }
-
-    public BlobMetadata(Guid id, byte[] hash, long length)
+    public BlobMetadata(HashId id, long length)
     {
         Id = id;
-        Hash = hash;
         Length = length;
     }
+
+    public HashId Id { get; }
+    public long Length { get; }
 };

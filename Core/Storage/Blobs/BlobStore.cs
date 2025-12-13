@@ -5,39 +5,35 @@ namespace Core.Storage.Blobs;
 public class BlobStore : IBlobStore
 {
     private readonly IBlobStorageBackend _storage;
-    private readonly Dictionary<Guid, BlobMetadata> _blobs = new();
+    private readonly Dictionary<HashId, BlobMetadata> _blobs = new();
 
     public BlobStore(IBlobStorageBackend storage)
     {
         _storage = storage;
     }
 
-    public BlobMetadata? Get(Guid id)
+    public BlobMetadata? Get(HashId id)
     {
         return _blobs.GetValueOrDefault(id);
     }
 
-    public Stream? GetContent(Guid id)
+    public Stream? GetContent(HashId id)
     {
         return _storage.GetBlob(id);
     }
 
     public BlobMetadata Add(Stream contentStream)
     {
-        var id = Guid.NewGuid();
+        var id = _storage.PutBlob(contentStream);
 
-        var hash = new XxHash128();
-        hash.Append(contentStream);
-        contentStream.Seek(0, SeekOrigin.Begin);
+        if (_blobs.TryGetValue(id, out var existing)) return existing;
 
-        _storage.PutBlob(id, contentStream);
-
-        var metadata = new BlobMetadata(id, hash.GetHashAndReset(), contentStream.Length);
+        var metadata = new BlobMetadata(id, contentStream.Length);
         _blobs.Add(id, metadata);
         return metadata;
     }
 
-    public bool Remove(Guid id)
+    public bool Remove(HashId id)
     {
         var removed = _blobs.Remove(id);
         if (removed)
