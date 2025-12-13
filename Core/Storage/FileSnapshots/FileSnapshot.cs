@@ -1,17 +1,17 @@
 ﻿namespace Core.Storage.FileSnapshots;
 
-public class FileSnapshot
+public readonly record struct FileSnapshot
 {
-    public Guid Id { get; }
-    public string FilePath { get; }
-    public Guid BlobId { get; }
-    public DateTime LastModified { get; }
-
-    public FileSnapshot(Guid id, string filePath, Guid blobId, DateTime lastModified)
+    public FileSnapshot(HashId id, string filePath, HashId blobId, DateTime lastModified)
     {
         Id = id;
         FilePath = filePath;
         BlobId = blobId;
         LastModified = lastModified;
     }
+
+    public HashId Id { get; }
+    public string FilePath { get; }
+    public HashId BlobId { get; }
+    public DateTime LastModified { get; }
 }
