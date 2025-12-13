@@ -1,4 +1,5 @@
-﻿using System.IO.Hashing;
+﻿using System.Buffers.Binary;
+using System.IO.Hashing;
 using System.Text;
 
 namespace Core.Storage.FileSnapshots;
@@ -10,9 +11,15 @@ public class FileSnapshotStore : IFileSnapshotStore
     private static HashId GenerateId(string filePath, HashId blobId, DateTime modified)
     {
         var hasher = new XxHash128();
+
         hasher.Append(Encoding.UTF8.GetBytes(filePath));
         hasher.Append(blobId.Bytes.Span);
-        hasher.Append(BitConverter.GetBytes(modified.Ticks));
+
+        var ticks = modified.ToUniversalTime().Ticks;
+        Span<byte> buffer = stackalloc byte[8];
+        BinaryPrimitives.WriteInt64LittleEndian(buffer, ticks);
+        hasher.Append(buffer);
+
         return new HashId(hasher.GetHashAndReset());
     }
 
