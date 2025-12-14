@@ -11,8 +11,8 @@ public class FileChangeStore : IFileChangeStore
     {
         var hasher = new XxHash128();
 
-        hasher.Append(before != null ? ((FileSnapshot)before).Id.Bytes.Span : [0]);
-        hasher.Append(after != null ? ((FileSnapshot)after).Id.Bytes.Span : [0]);
+        hasher.Append(before != null ? before.Id.Bytes.Span : [0]);
+        hasher.Append(after != null ? after.Id.Bytes.Span : [0]);
 
         return new HashId(hasher.GetHashAndReset());
     }
@@ -25,7 +25,6 @@ public class FileChangeStore : IFileChangeStore
     public FileChange Add(FileSnapshot? before, FileSnapshot? after)
     {
         var id = GenerateId(before, after);
-
         if (_changes.TryGetValue(id, out var existing)) return existing;
 
         var change = new FileChange(id, before, after);

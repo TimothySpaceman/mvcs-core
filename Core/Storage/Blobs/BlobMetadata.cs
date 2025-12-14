@@ -1,6 +1,6 @@
 ﻿namespace Core.Storage.Blobs;
 
-public readonly record struct BlobMetadata
+public record BlobMetadata
 {
     public BlobMetadata(HashId id, long length)
     {

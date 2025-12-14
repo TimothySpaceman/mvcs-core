@@ -8,16 +8,15 @@ public class FileSnapshotStore : IFileSnapshotStore
 {
     private readonly Dictionary<HashId, FileSnapshot> _snapshots = new();
 
-    private static HashId GenerateId(string filePath, HashId blobId, DateTime modified)
+    private static HashId GenerateId(string filePath, HashId blobId, DateTimeOffset modified)
     {
         var hasher = new XxHash128();
 
         hasher.Append(Encoding.UTF8.GetBytes(filePath));
         hasher.Append(blobId.Bytes.Span);
 
-        var ticks = modified.ToUniversalTime().Ticks;
         Span<byte> buffer = stackalloc byte[8];
-        BinaryPrimitives.WriteInt64LittleEndian(buffer, ticks);
+        BinaryPrimitives.WriteInt64LittleEndian(buffer, modified.UtcTicks);
         hasher.Append(buffer);
 
         return new HashId(hasher.GetHashAndReset());
@@ -28,10 +27,9 @@ public class FileSnapshotStore : IFileSnapshotStore
         return _snapshots.GetValueOrDefault(id);
     }
 
-    public FileSnapshot Add(string filePath, HashId blobId, DateTime modified)
+    public FileSnapshot Add(string filePath, HashId blobId, DateTimeOffset modified)
     {
         var id = GenerateId(filePath, blobId, modified);
-
         if (_snapshots.TryGetValue(id, out var existing)) return existing;
 
         var snapshot = new FileSnapshot(id, filePath, blobId, modified);

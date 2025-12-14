@@ -25,7 +25,6 @@ public class BlobStore : IBlobStore
     public BlobMetadata Add(Stream contentStream)
     {
         var id = _storage.PutBlob(contentStream);
-
         if (_blobs.TryGetValue(id, out var existing)) return existing;
 
         var metadata = new BlobMetadata(id, contentStream.Length);

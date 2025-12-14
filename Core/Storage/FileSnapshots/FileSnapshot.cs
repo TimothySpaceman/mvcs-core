@@ -1,8 +1,8 @@
 ﻿namespace Core.Storage.FileSnapshots;
 
-public readonly record struct FileSnapshot
+public record FileSnapshot
 {
-    public FileSnapshot(HashId id, string filePath, HashId blobId, DateTime lastModified)
+    public FileSnapshot(HashId id, string filePath, HashId blobId, DateTimeOffset lastModified)
     {
         Id = id;
         FilePath = filePath;
@@ -13,5 +13,5 @@ public readonly record struct FileSnapshot
     public HashId Id { get; }
     public string FilePath { get; }
     public HashId BlobId { get; }
-    public DateTime LastModified { get; }
+    public DateTimeOffset LastModified { get; }
 }

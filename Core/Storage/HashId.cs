@@ -19,6 +19,11 @@ public readonly record struct HashId
         return Convert.ToHexString(Bytes.Span);
     }
 
+    public override string ToString()
+    {
+        return ToHexString();
+    }
+
     public bool Equals(HashId other)
     {
         return Bytes.Span.SequenceEqual(other.Bytes.Span);

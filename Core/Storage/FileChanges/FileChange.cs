@@ -2,7 +2,7 @@
 
 namespace Core.Storage.FileChanges;
 
-public readonly record struct FileChange
+public record FileChange
 {
     public FileChange(HashId id, FileSnapshot? before, FileSnapshot? after)
     {
