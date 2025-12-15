@@ -1,7 +1,8 @@
 ﻿using System.IO.Hashing;
-using Core.Storage.FileSnapshots;
+using Core.FileSnapshots;
+using Core.Storage;
 
-namespace Core.Storage.FileChanges;
+namespace Core.FileChanges;
 
 public class FileChangeStore : IFileChangeStore
 {

@@ -1,8 +1,9 @@
 ﻿using System.Buffers.Binary;
 using System.IO.Hashing;
 using System.Text;
+using Core.Storage;
 
-namespace Core.Storage.FileSnapshots;
+namespace Core.FileSnapshots;
 
 public class FileSnapshotStore : IFileSnapshotStore
 {

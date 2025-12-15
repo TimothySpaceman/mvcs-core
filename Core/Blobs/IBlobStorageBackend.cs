@@ -1,4 +1,6 @@
-﻿namespace Core.Storage.Blobs;
+﻿using Core.Storage;
+
+namespace Core.Blobs;
 
 public interface IBlobStorageBackend
 {

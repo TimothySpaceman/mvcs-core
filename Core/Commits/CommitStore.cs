@@ -2,9 +2,10 @@
 using System.Collections.Immutable;
 using System.IO.Hashing;
 using System.Text;
-using Core.Storage.FileChanges;
+using Core.FileChanges;
+using Core.Storage;
 
-namespace Core.Storage.Commits;
+namespace Core.Commits;
 
 public class CommitStore : ICommitStore
 {

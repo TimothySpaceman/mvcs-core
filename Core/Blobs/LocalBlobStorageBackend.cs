@@ -1,8 +1,10 @@
 ﻿using System.IO.Hashing;
 using Core.Config;
 using Core.Exceptions;
+using Core.Storage;
+using Core.Blobs;
 
-namespace Core.Storage.Blobs;
+namespace Core.Blobs;
 
 public class LocalBlobStorageBackend : IBlobStorageBackend
 {

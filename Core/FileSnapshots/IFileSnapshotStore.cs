@@ -1,4 +1,6 @@
-﻿namespace Core.Storage.FileSnapshots;
+﻿using Core.Storage;
+
+namespace Core.FileSnapshots;
 
 public interface IFileSnapshotStore
 {

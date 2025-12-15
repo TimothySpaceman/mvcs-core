@@ -1,7 +1,8 @@
 ﻿using System.Collections.Immutable;
-using Core.Storage.FileChanges;
+using Core.FileChanges;
+using Core.Storage;
 
-namespace Core.Storage.Commits;
+namespace Core.Commits;
 
 public record Commit
 {
