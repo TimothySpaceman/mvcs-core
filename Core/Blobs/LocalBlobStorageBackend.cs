@@ -50,44 +50,16 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         return File.OpenRead(blobPath);
     }
 
-    public HashId PutBlob(Stream contentStream)
+    public void PutBlob(HashId id, Stream contentStream)
     {
-        var blobDirPath = EnsureBlobDir();
-        var tempBlobPath = Path.Combine(blobDirPath, $"tmp-{Guid.NewGuid()}");
+        EnsureBlobDir();
+        var blobPath = Path.Combine(GetBlobDirPath(), id.ToHexString());
 
-        var hasher = new XxHash128();
+        if (File.Exists(blobPath)) return;
 
-        const int bufferSize = 4 * 1024;
-        var buffer = new byte[bufferSize];
-
-        try
-        {
-            using (var fs = new FileStream(tempBlobPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize))
-            {
-                int bytesRead;
-                while ((bytesRead = contentStream.Read(buffer, 0, bufferSize)) > 0)
-                {
-                    hasher.Append(buffer.AsSpan(0, bytesRead));
-                    fs.Write(buffer, 0, bytesRead);
-                }
-            }
-
-            var hash = new HashId(hasher.GetHashAndReset());
-
-            var blobPath = Path.Combine(blobDirPath, hash.ToHexString());
-            File.Move(tempBlobPath, blobPath, true);
-
-            return hash;
-        }
-        catch
-        {
-            if (File.Exists(tempBlobPath))
-            {
-                File.Delete(tempBlobPath);
-            }
-
-            throw;
-        }
+        using var fileStream = File.Open(blobPath, FileMode.Create);
+        contentStream.CopyTo(fileStream);
+        contentStream.Seek(0, SeekOrigin.Begin);
     }
 
     public bool RemoveBlob(HashId id)

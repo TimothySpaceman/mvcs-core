@@ -13,6 +13,16 @@ public class BlobStore : IBlobStore
         _storage = storage;
     }
 
+    private static HashId GenerateId(Stream contentStream)
+    {
+        var hasher = new XxHash128();
+        hasher.Append(contentStream);
+        var hash = new HashId(hasher.GetHashAndReset());
+
+        contentStream.Seek(0, SeekOrigin.Begin);
+        return hash;
+    }
+
     public BlobMetadata? Get(HashId id)
     {
         return _blobs.GetValueOrDefault(id);
@@ -25,8 +35,10 @@ public class BlobStore : IBlobStore
 
     public BlobMetadata Add(Stream contentStream)
     {
-        var id = _storage.PutBlob(contentStream);
+        var id = GenerateId(contentStream);
         if (_blobs.TryGetValue(id, out var existing)) return existing;
+
+        _storage.PutBlob(id, contentStream);
 
         var metadata = new BlobMetadata(id, contentStream.Length);
         _blobs.Add(id, metadata);
@@ -36,11 +48,7 @@ public class BlobStore : IBlobStore
     public bool Remove(HashId id)
     {
         var removed = _blobs.Remove(id);
-        if (removed)
-        {
-            _storage.RemoveBlob(id);
-        }
-
+        _storage.RemoveBlob(id);
         return removed;
     }
 }
