@@ -2,10 +2,9 @@
 
 namespace Core.Blobs;
 
-public interface IBlobStore
+public interface IBlobMetadataStore
 {
     public BlobMetadata? Get(HashId id);
-    public Stream? GetContent(HashId id);
-    public BlobMetadata Add(Stream contentStream);
+    public void Add(BlobMetadata blobMetadata);
     public bool Remove(HashId id);
 }

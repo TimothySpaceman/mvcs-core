@@ -5,7 +5,7 @@ namespace Core.FileChanges;
 
 public record FileChange
 {
-    public FileChange(HashId id, FileSnapshot? before, FileSnapshot? after)
+    public FileChange(HashId id, FileSnapshot? before = null, FileSnapshot? after = null)
     {
         if (before == null && after == null)
         {
@@ -15,10 +15,6 @@ public record FileChange
         Id = id;
         Before = before;
         After = after;
-    }
-
-    public FileChange(HashId id, FileSnapshot before) : this(id, before, null)
-    {
     }
 
     public HashId Id { get; }

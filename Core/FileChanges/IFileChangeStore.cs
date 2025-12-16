@@ -6,7 +6,6 @@ namespace Core.FileChanges;
 public interface IFileChangeStore
 {
     public FileChange? Get(HashId id);
-    public FileChange Add(FileSnapshot? before, FileSnapshot? after);
-    public FileChange Add(FileSnapshot before);
+    public void Add(FileChange fileChange);
     public bool Remove(HashId id);
 }
