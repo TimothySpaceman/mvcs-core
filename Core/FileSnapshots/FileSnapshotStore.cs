@@ -9,6 +9,11 @@ public class FileSnapshotStore : IFileSnapshotStore
 {
     private readonly Dictionary<HashId, FileSnapshot> _snapshots = new();
 
+    public bool Has(HashId id)
+    {
+        return _snapshots.ContainsKey(id);
+    }
+
     public FileSnapshot? Get(HashId id)
     {
         return _snapshots.GetValueOrDefault(id);

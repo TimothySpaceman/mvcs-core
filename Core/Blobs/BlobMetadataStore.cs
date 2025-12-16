@@ -5,7 +5,12 @@ namespace Core.Blobs;
 
 public class BlobMetadataStore : IBlobMetadataStore
 {
-    protected readonly Dictionary<HashId, BlobMetadata> _blobs = new();
+    private readonly Dictionary<HashId, BlobMetadata> _blobs = new();
+
+    public bool Has(HashId id)
+    {
+        return _blobs.ContainsKey(id);
+    }
 
     public BlobMetadata? Get(HashId id)
     {

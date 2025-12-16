@@ -6,20 +6,8 @@ namespace Core.Commits;
 
 public interface ICommitStore
 {
+    public bool Has(HashId id);
     public Commit? Get(HashId id);
-
-    public Commit Add(
-        HashId? parentId,
-        string message,
-        ImmutableArray<FileChange> changes,
-        DateTimeOffset createdAt
-    );
-
-    public Commit Add(
-        HashId? parentId,
-        string message,
-        ImmutableArray<FileChange> changes
-    );
-
+    public void Add(Commit commit);
     public bool Remove(HashId id);
 }
