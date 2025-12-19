@@ -38,7 +38,7 @@ public class BlobService : IBlobService
     public BlobMetadata Add(Stream contentStream)
     {
         var metadata = AddMetadata(contentStream);
-        _storageBackend.PutBlob(metadata.Id, contentStream);
+        AddContent(metadata.Id, contentStream);
         return metadata;
     }
 }

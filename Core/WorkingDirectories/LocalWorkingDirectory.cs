@@ -49,14 +49,17 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         foreach (var filePath in filePaths)
         {
+            var relativePath = Path.GetRelativePath(Path.GetFullPath(_rootPath), filePath);
+
             using var stream = File.OpenRead(filePath);
             var blobMetadata = BlobMetadataFactory.CreateMetadata(stream);
             var fileSnapshot = FileSnapshotFactory.CreateSnapshot(
-                filePath,
+                relativePath,
                 blobMetadata.Id,
                 File.GetLastWriteTimeUtc(filePath)
             );
-            files.Add(filePath, fileSnapshot);
+
+            files.Add(relativePath, fileSnapshot);
         }
 
         return new Snapshot(files.ToImmutableDictionary());
