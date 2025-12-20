@@ -7,7 +7,7 @@ namespace Core.Repositories;
 
 public interface IRepository
 {
-    public IgnoreRuleSet IgnoreRuleSet { get; set; }
+    public IgnoreRuleSet IgnoreRuleSet { get; }
 
     public IEnumerable<Commit> GetCommitsHistory();
 
