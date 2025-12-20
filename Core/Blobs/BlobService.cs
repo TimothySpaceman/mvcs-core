@@ -1,0 +1,44 @@
+﻿using Core.Storage;
+
+namespace Core.Blobs;
+
+public class BlobService : IBlobService
+{
+    private readonly IBlobMetadataStore _metadataStore;
+    private readonly IBlobStorageBackend _storageBackend;
+
+    public BlobService(IBlobMetadataStore metadataStore, IBlobStorageBackend storageBackend)
+    {
+        _metadataStore = metadataStore;
+        _storageBackend = storageBackend;
+    }
+
+    public BlobMetadata AddMetadata(Stream contentStream)
+    {
+        var metadata = BlobMetadataFactory.CreateMetadata(contentStream);
+        _metadataStore.Add(metadata);
+        return metadata;
+    }
+
+    public BlobMetadata? GetMetadata(HashId id)
+    {
+        return _metadataStore.Get(id);
+    }
+
+    public void AddContent(HashId id, Stream contentStream)
+    {
+        _storageBackend.PutBlob(id, contentStream);
+    }
+
+    public Stream? GetContent(HashId id)
+    {
+        return _storageBackend.GetBlob(id);
+    }
+
+    public BlobMetadata Add(Stream contentStream)
+    {
+        var metadata = AddMetadata(contentStream);
+        AddContent(metadata.Id, contentStream);
+        return metadata;
+    }
+}
