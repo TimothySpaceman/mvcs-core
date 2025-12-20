@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Core.Exceptions;
+using Core.FileChanges;
 using Core.FileSnapshots;
 using Core.Snapshots;
 using Core.Storage;
@@ -44,30 +45,12 @@ public class CommitService : ICommitService
             throw new CommitNotFoundException($"Beginning commit with ID {idFrom} not found");
         }
 
-        var commit = _commitStore.Get(idTo)!;
-        var parentId = commit.ParentId;
-        var chain = new List<Commit>();
-
-        while (commit != null)
-        {
-            chain.Insert(0, commit);
-            if (commit.Id == idFrom || parentId == null) break;
-
-            if (!_commitStore.Has((HashId)parentId))
-            {
-                throw new CommitNotFoundException($"Parent ({(HashId)parentId}) for commit {commit.Id} not found");
-            }
-
-            commit = _commitStore.Get((HashId)parentId);
-            parentId = commit?.ParentId;
-        }
-
-        return chain;
+        return new CommitIterator(_commitStore, idTo, idFrom);
     }
 
     public Snapshot GetSnapshotForCommit(HashId commitId)
     {
-        var history = GetCommitsChain(commitId);
+        var history = GetCommitsChain(commitId).Reverse();
 
         var files = new Dictionary<string, FileSnapshot>();
 
@@ -75,23 +58,28 @@ public class CommitService : ICommitService
         {
             foreach (var change in commit.Changes)
             {
-                if (change.IsCreation)
-                {
-                    files.Add(change.After!.FilePath, change.After);
-                }
-                else if (change.IsRemoval)
-                {
-                    files.Remove(change.Before!.FilePath);
-                }
-                else
-                {
-                    files.Remove(change.Before!.FilePath);
-                    if (change.IsFilePathChanged) files.Remove(change.After!.FilePath);
-                    files.Add(change.After!.FilePath, change.After);
-                }
+                ApplyFileChange(files, change);
             }
         }
 
         return new Snapshot(files.ToImmutableDictionary());
+    }
+
+    private static void ApplyFileChange(Dictionary<string, FileSnapshot> files, FileChange change)
+    {
+        if (change.IsCreation)
+        {
+            files.Add(change.After!.FilePath, change.After);
+        }
+        else if (change.IsRemoval)
+        {
+            files.Remove(change.Before!.FilePath);
+        }
+        else
+        {
+            files.Remove(change.Before!.FilePath);
+            if (change.IsFilePathChanged) files.Remove(change.After!.FilePath);
+            files.Add(change.After!.FilePath, change.After);
+        }
     }
 }

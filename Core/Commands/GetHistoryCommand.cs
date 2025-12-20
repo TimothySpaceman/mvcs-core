@@ -10,6 +10,6 @@ public class GetHistoryCommand : IRepositoryCommand<IEnumerable<Commit>>
     {
         var headRef = context.GetHeadRef();
         if (headRef == null) return [];
-        return context.CommitService.GetCommitsChain((HashId)headRef);
+        return context.CommitService.GetCommitsChain((HashId)headRef).Reverse();
     }
 }
