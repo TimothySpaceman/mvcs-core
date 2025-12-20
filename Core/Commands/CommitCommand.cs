@@ -1,4 +1,5 @@
 ﻿using Core.Commits;
+using Core.Events;
 using Core.FileChanges;
 using Core.Repositories;
 using Core.Storage;
@@ -40,6 +41,9 @@ public class CommitCommand : IRepositoryCommand<Commit>
 
         context.CommitService.AddCommit(commit);
         context.SetHeadRef(commit.Id);
+
+        var eventArgs = new CommitEventArgs(commit);
+        context.Events.NotifyOnCommit(eventArgs);
 
         return commit;
     }

@@ -1,4 +1,5 @@
-﻿using Core.Exceptions;
+﻿using Core.Events;
+using Core.Exceptions;
 using Core.Repositories;
 using Core.Storage;
 
@@ -28,6 +29,9 @@ public class CheckoutCommand : IRepositoryCommand<bool>
         var snapshot = context.CommitService.GetSnapshotForCommit(_commitId);
         context.WorkingDirectory.ApplySnapshot(snapshot, context.IgnoreRuleSet);
         context.SetHeadRef(_commitId);
+
+        var eventArgs = new CheckoutEventArgs(_commitId, _force);
+        context.Events.NotifyOnCheckout(eventArgs);
 
         return true;
     }

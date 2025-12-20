@@ -1,6 +1,7 @@
 ﻿using Core.Blobs;
 using Core.Commits;
 using Core.Diffing;
+using Core.Events;
 using Core.Refs;
 using Core.Storage;
 using Core.WorkingDirectories;
@@ -9,6 +10,7 @@ namespace Core.Repositories;
 
 public class RepositoryContext : IRepositoryContext
 {
+    public IRepositoryEvents Events { get; }
     public IBlobService BlobService { get; }
     public ICommitService CommitService { get; }
     public IDiffService DiffService { get; }
@@ -22,7 +24,8 @@ public class RepositoryContext : IRepositoryContext
         IDiffService diffService,
         IWorkingDirectory workingDirectory,
         IRefStore refStore,
-        IgnoreRuleSet ignoreRuleSet
+        IgnoreRuleSet ignoreRuleSet,
+        IRepositoryEvents events
     )
     {
         BlobService = blobService;
@@ -31,6 +34,7 @@ public class RepositoryContext : IRepositoryContext
         WorkingDirectory = workingDirectory;
         RefStore = refStore;
         IgnoreRuleSet = ignoreRuleSet;
+        Events = events;
     }
 
     public HashId? GetHeadRef() => RefStore.Get<HashId>("HEAD");

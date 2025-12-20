@@ -4,6 +4,7 @@ using Core.Diffing;
 using Core.FileChanges;
 using Core.Refs;
 using Core.Commands;
+using Core.Events;
 using Core.Storage;
 using Core.WorkingDirectories;
 
@@ -18,6 +19,9 @@ public class Repository : IRepository
         get => _context.IgnoreRuleSet;
     }
 
+    public event EventHandler<CommitEventArgs> OnCommit;
+    public event EventHandler<CheckoutEventArgs> OnCheckout;
+
     public Repository(
         IBlobService blobService,
         ICommitService commitService,
@@ -26,9 +30,20 @@ public class Repository : IRepository
         IRefStore refStore
     )
     {
+        var ignoreRules = new IgnoreRuleSet();
+        var eventBus = new RepositoryEvents();
+
         _context = new RepositoryContext(
-            blobService, commitService, diffService, workingDirectory, refStore, new IgnoreRuleSet()
+            blobService, commitService, diffService, workingDirectory, refStore, ignoreRules, eventBus
         );
+
+        SetupEventProxies();
+    }
+
+    private void SetupEventProxies()
+    {
+        _context.Events.OnCommit += (args) => OnCommit?.Invoke(this, args);
+        _context.Events.OnCheckout += (args) => OnCheckout?.Invoke(this, args);
     }
 
     public T Execute<T>(IRepositoryCommand<T> command)
