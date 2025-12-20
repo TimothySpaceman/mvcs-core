@@ -32,7 +32,7 @@ public class CommitService : ICommitService
         return _commitStore.Get(id);
     }
 
-    public List<Commit> GetCommitsChain(HashId idTo, HashId? idFrom = null)
+    public IEnumerable<Commit> GetCommitsChain(HashId idTo, HashId? idFrom = null)
     {
         if (!_commitStore.Has(idTo))
         {

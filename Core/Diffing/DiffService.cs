@@ -17,7 +17,7 @@ public class DiffService : IDiffService
             var before = snapshotA.Files.GetValueOrDefault(path);
             var after = snapshotB.Files.GetValueOrDefault(path);
 
-            if (before?.Id == after?.Id) continue;
+            if (before?.BlobId == after?.BlobId && before?.FilePath == after?.FilePath) continue;
 
             changes.Add(new FileChange(before, after));
         }

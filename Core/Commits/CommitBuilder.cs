@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.IO.Hashing;
 using System.Text;
 using Core.FileChanges;
+using Core.FileSnapshots;
 using Core.Storage;
 
 namespace Core.Commits;
@@ -67,6 +68,18 @@ public class CommitBuilder
         }
     }
 
+    private static void HashFileSnapshot(NonCryptographicHashAlgorithm hasher, FileSnapshot? snapshot)
+    {
+        if (snapshot == null)
+        {
+            hasher.Append([0]);
+            return;
+        }
+
+        hasher.Append(snapshot.BlobId.Bytes.Span);
+        hasher.Append(Encoding.UTF8.GetBytes(snapshot.FilePath));
+    }
+
     private static HashId GenerateId(
         HashId? parentId,
         string message,
@@ -81,8 +94,8 @@ public class CommitBuilder
 
         foreach (var change in changes)
         {
-            hasher.Append(change.Before != null ? change.Before!.Id.Bytes.Span : [0]);
-            hasher.Append(change.After != null ? change.After!.Id.Bytes.Span : [0]);
+            HashFileSnapshot(hasher, change.Before);
+            HashFileSnapshot(hasher, change.After);
         }
 
         Span<byte> buffer = stackalloc byte[8];

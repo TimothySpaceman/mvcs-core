@@ -9,6 +9,8 @@ public readonly record struct HashId
 
     public ReadOnlyMemory<byte> Bytes { get; init; }
 
+    public bool IsEmpty => Bytes.IsEmpty;
+
     public string ToBase64String()
     {
         return Convert.ToBase64String(Bytes.Span);

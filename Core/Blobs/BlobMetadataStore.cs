@@ -19,7 +19,7 @@ public class BlobMetadataStore : IBlobMetadataStore
 
     public void Add(BlobMetadata blobMetadata)
     {
-        _blobs.Add(blobMetadata.Id, blobMetadata);
+        _blobs.TryAdd(blobMetadata.Id, blobMetadata);
     }
 
     public bool Remove(HashId id)

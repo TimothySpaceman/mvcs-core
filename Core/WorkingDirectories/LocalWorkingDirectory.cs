@@ -41,6 +41,11 @@ public class LocalWorkingDirectory : IWorkingDirectory
         return matcher;
     }
 
+    public Stream GetFileContent(string filePath)
+    {
+        return File.OpenRead(Path.Combine(_rootPath, filePath));
+    }
+
     public Snapshot GetCurrentSnapshot(IgnoreRuleSet? ignoreRules = null)
     {
         var matcher = GetMatcherForRules(ignoreRules);
@@ -53,7 +58,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
             using var stream = File.OpenRead(filePath);
             var blobMetadata = BlobMetadataFactory.CreateMetadata(stream);
-            var fileSnapshot = FileSnapshotFactory.CreateSnapshot(
+            var fileSnapshot = new FileSnapshot(
                 relativePath,
                 blobMetadata.Id,
                 File.GetLastWriteTimeUtc(filePath)
