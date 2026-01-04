@@ -35,8 +35,8 @@ public class CommitCommand : IRepositoryCommand<Commit>
         foreach (var change in changesArray)
         {
             if (change.After == null) continue;
-            using var contentStream = context.WorkingDirectory.GetFileContent(change.After.FilePath);
-            context.BlobService.Add(contentStream);
+            using var content = context.WorkingDirectory.GetFileContent(change.After.FilePath);
+            context.BlobService.Add(content);
         }
 
         context.CommitService.AddCommit(commit);

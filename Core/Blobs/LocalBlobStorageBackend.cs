@@ -50,7 +50,7 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         return File.OpenRead(blobPath);
     }
 
-    public void PutBlob(HashId id, Stream contentStream)
+    public void PutBlob(HashId id, Stream content)
     {
         EnsureBlobDir();
         var blobPath = Path.Combine(GetBlobDirPath(), id.ToHexString());
@@ -58,8 +58,8 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         if (File.Exists(blobPath)) return;
 
         using var fileStream = File.Open(blobPath, FileMode.Create);
-        contentStream.CopyTo(fileStream);
-        contentStream.Seek(0, SeekOrigin.Begin);
+        content.CopyTo(fileStream);
+        content.Seek(0, SeekOrigin.Begin);
     }
 
     public bool RemoveBlob(HashId id)

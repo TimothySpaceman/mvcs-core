@@ -46,6 +46,20 @@ public class LocalWorkingDirectory : IWorkingDirectory
         return File.OpenRead(Path.Combine(_rootPath, filePath));
     }
 
+    public void PutFileContent(string filePath, Stream content)
+    {
+        var fullPath = Path.Combine(Path.GetFullPath(_rootPath), filePath);
+
+        var fileDir = Path.GetDirectoryName(fullPath);
+        if (fileDir != null && !Directory.Exists(fileDir))
+        {
+            Directory.CreateDirectory(fileDir);
+        }
+
+        using var fileStream = File.Create(fullPath);
+        content.CopyTo(fileStream);
+    }
+
     public Snapshot GetCurrentSnapshot(IgnoreRuleSet? ignoreRules = null)
     {
         var matcher = GetMatcherForRules(ignoreRules);
@@ -73,31 +87,26 @@ public class LocalWorkingDirectory : IWorkingDirectory
     public void ApplySnapshot(Snapshot snapshot, IgnoreRuleSet? ignoreRules = null)
     {
         var matcher = GetMatcherForRules(ignoreRules);
-        var currentFiles = matcher.GetResultsInFullPath(_rootPath);
-        foreach (var file in currentFiles)
-        {
-            File.Delete(file);
-        }
+        var currentFiles = matcher.GetResultsInFullPath(_rootPath).ToList();
 
         foreach (var fileEntry in snapshot.Files)
         {
-            var filePath = Path.GetFullPath(Path.Combine(_rootPath, fileEntry.Key));
             var fileSnapshot = fileEntry.Value;
-
             using var blobStream = _blobStorageBackend.GetBlob(fileSnapshot.BlobId);
             if (blobStream == null)
             {
                 throw new BlobContentNotFoundException($"Blob content for {fileSnapshot.BlobId} not found");
             }
 
-            var fileDir = Path.GetDirectoryName(filePath);
-            if (fileDir != null && !Directory.Exists(fileDir))
-            {
-                Directory.CreateDirectory(fileDir);
-            }
+            var fullPath = Path.Combine(Path.GetFullPath(_rootPath), fileEntry.Key);
+            currentFiles.Remove(fullPath);
 
-            using var fileStream = File.Create(filePath);
-            blobStream.CopyTo(fileStream);
+            PutFileContent(fileEntry.Key, blobStream);
+        }
+
+        foreach (var file in currentFiles)
+        {
+            File.Delete(file);
         }
     }
 }
