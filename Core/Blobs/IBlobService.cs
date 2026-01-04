@@ -4,11 +4,11 @@ namespace Core.Blobs;
 
 public interface IBlobService
 {
-    public BlobMetadata AddMetadata(Stream contentStream);
+    public BlobMetadata AddMetadata(Stream content);
     public BlobMetadata? GetMetadata(HashId id);
 
-    public void AddContent(HashId id, Stream contentStream);
+    public void AddContent(HashId id, Stream content);
     public Stream? GetContent(HashId id);
     
-    public BlobMetadata Add(Stream contentStream);
+    public BlobMetadata Add(Stream content);
 }

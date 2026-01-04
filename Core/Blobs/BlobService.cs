@@ -13,9 +13,9 @@ public class BlobService : IBlobService
         _storageBackend = storageBackend;
     }
 
-    public BlobMetadata AddMetadata(Stream contentStream)
+    public BlobMetadata AddMetadata(Stream content)
     {
-        var metadata = BlobMetadataFactory.CreateMetadata(contentStream);
+        var metadata = BlobMetadataFactory.CreateMetadata(content);
         _metadataStore.Add(metadata);
         return metadata;
     }
@@ -25,9 +25,9 @@ public class BlobService : IBlobService
         return _metadataStore.Get(id);
     }
 
-    public void AddContent(HashId id, Stream contentStream)
+    public void AddContent(HashId id, Stream content)
     {
-        _storageBackend.PutBlob(id, contentStream);
+        _storageBackend.PutBlob(id, content);
     }
 
     public Stream? GetContent(HashId id)
@@ -35,10 +35,10 @@ public class BlobService : IBlobService
         return _storageBackend.GetBlob(id);
     }
 
-    public BlobMetadata Add(Stream contentStream)
+    public BlobMetadata Add(Stream content)
     {
-        var metadata = AddMetadata(contentStream);
-        AddContent(metadata.Id, contentStream);
+        var metadata = AddMetadata(content);
+        AddContent(metadata.Id, content);
         return metadata;
     }
 }
