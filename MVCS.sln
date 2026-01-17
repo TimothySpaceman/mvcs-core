@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{C93F67C8-835F-4B00-886F-B9B01FF61DDF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlaygroundCLI", "PlaygroundCLI\PlaygroundCLI.csproj", "{6849B28B-EA6D-4BC2-96F5-075C32DB960F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{C93F67C8-835F-4B00-886F-B9B01FF61DDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C93F67C8-835F-4B00-886F-B9B01FF61DDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C93F67C8-835F-4B00-886F-B9B01FF61DDF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6849B28B-EA6D-4BC2-96F5-075C32DB960F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6849B28B-EA6D-4BC2-96F5-075C32DB960F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6849B28B-EA6D-4BC2-96F5-075C32DB960F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6849B28B-EA6D-4BC2-96F5-075C32DB960F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
