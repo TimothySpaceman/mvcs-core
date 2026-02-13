@@ -41,6 +41,11 @@ public class LocalWorkingDirectory : IWorkingDirectory
         return matcher;
     }
 
+    private string GetFullPath(string filePath)
+    {
+        return Path.Combine(Path.GetFullPath(_rootPath), filePath);
+    }
+
     public Stream GetFileContent(string filePath)
     {
         return File.OpenRead(Path.Combine(_rootPath, filePath));
@@ -48,7 +53,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
     public void PutFileContent(string filePath, Stream content)
     {
-        var fullPath = Path.Combine(Path.GetFullPath(_rootPath), filePath);
+        var fullPath = GetFullPath(filePath);
 
         var fileDir = Path.GetDirectoryName(fullPath);
         if (fileDir != null && !Directory.Exists(fileDir))
@@ -58,6 +63,11 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         using var fileStream = File.Create(fullPath);
         content.CopyTo(fileStream);
+    }
+
+    public void DeleteFile(string filePath)
+    {
+        File.Delete(filePath);
     }
 
     public Snapshot GetCurrentSnapshot(IgnoreRuleSet? ignoreRules = null)
@@ -70,8 +80,9 @@ public class LocalWorkingDirectory : IWorkingDirectory
         {
             var relativePath = Path.GetRelativePath(Path.GetFullPath(_rootPath), filePath);
 
-            using var stream = File.OpenRead(filePath);
+            using var stream = GetFileContent(filePath);
             var blobMetadata = BlobMetadataFactory.CreateMetadata(stream);
+
             var fileSnapshot = new FileSnapshot(
                 relativePath,
                 blobMetadata.Id,
@@ -98,7 +109,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
                 throw new BlobContentNotFoundException($"Blob content for {fileSnapshot.BlobId} not found");
             }
 
-            var fullPath = Path.Combine(Path.GetFullPath(_rootPath), fileEntry.Key);
+            var fullPath = GetFullPath(fileEntry.Key);
             currentFiles.Remove(fullPath);
 
             PutFileContent(fileEntry.Key, blobStream);
@@ -106,7 +117,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         foreach (var file in currentFiles)
         {
-            File.Delete(file);
+            DeleteFile(file);
         }
     }
 }
