@@ -6,9 +6,18 @@ namespace Core.WorkingDirectories;
 
 public interface IWorkingDirectory
 {
-    public Stream GetFileContent(string path);
-    public void PutFileContent(string path, Stream content);
-    public void DeleteFile(string path);
-    public Snapshot GetCurrentSnapshot(IgnoreRuleSet? ignoreRules = null);
-    public void ApplySnapshot(Snapshot snapshot, IgnoreRuleSet? ignoreRules = null);
+    public Task<Stream?> GetFileContentAsync(string path, CancellationToken cancellationToken = default);
+    public Task PutFileContentAsync(string path, Stream content, CancellationToken cancellationToken = default);
+    public Task DeleteFileAsync(string path, CancellationToken cancellationToken = default);
+
+    public Task<Snapshot> GetCurrentSnapshotAsync(
+        IgnoreRuleSet? ignoreRules = null,
+        CancellationToken cancellationToken = default
+    );
+
+    public Task ApplySnapshotAsync(
+        Snapshot snapshot,
+        IgnoreRuleSet? ignoreRules = null,
+        CancellationToken cancellationToken = default
+    );
 }
