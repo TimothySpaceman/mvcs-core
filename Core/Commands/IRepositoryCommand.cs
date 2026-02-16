@@ -2,7 +2,7 @@
 
 namespace Core.Commands;
 
-public interface IRepositoryCommand<out TResult>
+public interface IRepositoryCommand<TResult>
 {
-    TResult Execute(RepositoryContext context);
+    Task<TResult> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default);
 }

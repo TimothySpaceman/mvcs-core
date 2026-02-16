@@ -4,12 +4,25 @@ using Core.Storage;
 
 namespace Core.Commands;
 
-public class GetHistoryCommand : IRepositoryCommand<IEnumerable<Commit>>
+public class GetHistoryCommand : IRepositoryCommand<IAsyncEnumerable<Commit>>
 {
-    public IEnumerable<Commit> Execute(RepositoryContext context)
+    public async Task<IAsyncEnumerable<Commit>> ExecuteAsync(
+        RepositoryContext context,
+        CancellationToken cancellationToken = default
+    )
     {
-        var headRef = context.GetHeadRef();
-        if (headRef == null) return [];
-        return context.CommitService.GetCommitsChain((HashId)headRef).Reverse();
+        var headRef = await context.GetHeadRef(cancellationToken);
+
+        if (headRef == null)
+        {
+            return EmptyStream();
+        }
+
+        return context.CommitService.GetCommitsChainAsync((HashId)headRef, null, cancellationToken);
+    }
+
+    private static async IAsyncEnumerable<Commit> EmptyStream()
+    {
+        yield break;
     }
 }

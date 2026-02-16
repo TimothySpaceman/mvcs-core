@@ -16,22 +16,32 @@ public class CheckoutCommand : IRepositoryCommand<bool>
         _force = force;
     }
 
-    public bool Execute(RepositoryContext context)
+    public async Task<bool> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default)
     {
         var statusCommand = new GetStatusCommand();
-        var currentStatus = statusCommand.Execute(context);
+
+        var currentStatus = await statusCommand.ExecuteAsync(context, cancellationToken).ConfigureAwait(false);
 
         if (!_force && currentStatus.Any())
         {
             throw new WorkdirUnsavedException("Unable to checkout with unsaved changes");
         }
 
-        var snapshot = context.CommitService.GetSnapshotForCommit(_commitId);
-        context.WorkingDirectory.ApplySnapshot(snapshot, context.IgnoreRuleSet);
-        context.SetHeadRef(_commitId);
+        var snapshot = await context.CommitService.GetSnapshotForCommitAsync(
+            _commitId,
+            cancellationToken
+        ).ConfigureAwait(false);
+
+        await context.WorkingDirectory.ApplySnapshotAsync(
+            snapshot,
+            context.IgnoreRuleSet,
+            cancellationToken
+        ).ConfigureAwait(false);
+
+        await context.SetHeadRef(_commitId, "CHECKOUT", cancellationToken);
 
         var eventArgs = new CheckoutEventArgs(_commitId, _force);
-        context.Events.NotifyOnCheckout(eventArgs);
+        await context.Events.NotifyOnCheckoutAsync(eventArgs, cancellationToken).ConfigureAwait(false);
 
         return true;
     }

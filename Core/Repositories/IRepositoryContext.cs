@@ -16,9 +16,9 @@ public interface IRepositoryContext
     public ICommitService CommitService { get; }
     public IDiffService DiffService { get; }
     public IWorkingDirectory WorkingDirectory { get; }
-    public IRefStore RefStore { get; }
+    public IRefLog RefLog { get; }
     public IgnoreRuleSet IgnoreRuleSet { get; }
 
-    public HashId? GetHeadRef();
-    public void SetHeadRef(HashId headRef);
+    public Task<HashId?> GetHeadRef(CancellationToken cancellationToken = default);
+    public Task SetHeadRef(HashId newValue, string message, CancellationToken cancellationToken = default);
 }

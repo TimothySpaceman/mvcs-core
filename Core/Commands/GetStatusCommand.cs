@@ -7,17 +7,25 @@ namespace Core.Commands;
 
 public class GetStatusCommand : IRepositoryCommand<IEnumerable<FileChange>>
 {
-    public IEnumerable<FileChange> Execute(RepositoryContext context)
+    public async Task<IEnumerable<FileChange>> ExecuteAsync(RepositoryContext context,
+        CancellationToken cancellationToken = default)
     {
-        var headRef = context.GetHeadRef();
+        var headRef = await context.GetHeadRef(cancellationToken);
         var commitSnapshot = Snapshot.Empty();
 
         if (headRef != null && !((HashId)headRef).IsEmpty)
         {
-            commitSnapshot = context.CommitService.GetSnapshotForCommit((HashId)headRef);
+            commitSnapshot = await context.CommitService.GetSnapshotForCommitAsync(
+                (HashId)headRef,
+                cancellationToken
+            ).ConfigureAwait(false);
         }
 
-        var workDirSnapshot = context.WorkingDirectory.GetCurrentSnapshot(context.IgnoreRuleSet);
+        var workDirSnapshot = await context.WorkingDirectory.GetCurrentSnapshotAsync(
+            context.IgnoreRuleSet,
+            cancellationToken
+        ).ConfigureAwait(false);
+
         return context.DiffService.DiffSnapshots(commitSnapshot, workDirSnapshot);
     }
 }

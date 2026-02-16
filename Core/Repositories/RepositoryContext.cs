@@ -15,7 +15,7 @@ public class RepositoryContext : IRepositoryContext
     public ICommitService CommitService { get; }
     public IDiffService DiffService { get; }
     public IWorkingDirectory WorkingDirectory { get; }
-    public IRefStore RefStore { get; }
+    public IRefLog RefLog { get; }
     public IgnoreRuleSet IgnoreRuleSet { get; }
 
     public RepositoryContext(
@@ -23,7 +23,7 @@ public class RepositoryContext : IRepositoryContext
         ICommitService commitService,
         IDiffService diffService,
         IWorkingDirectory workingDirectory,
-        IRefStore refStore,
+        IRefLog refLog,
         IgnoreRuleSet ignoreRuleSet,
         IRepositoryEvents events
     )
@@ -32,11 +32,18 @@ public class RepositoryContext : IRepositoryContext
         CommitService = commitService;
         DiffService = diffService;
         WorkingDirectory = workingDirectory;
-        RefStore = refStore;
+        RefLog = refLog;
         IgnoreRuleSet = ignoreRuleSet;
         Events = events;
     }
 
-    public HashId? GetHeadRef() => RefStore.Get<HashId>("HEAD");
-    public void SetHeadRef(HashId headRef) => RefStore.Set("HEAD", headRef);
+    public Task<HashId?> GetHeadRef(CancellationToken cancellationToken = default)
+    {
+        return RefLog.GetAsync("HEAD", cancellationToken);
+    }
+
+    public Task SetHeadRef(HashId headRef, string message, CancellationToken cancellationToken = default)
+    {
+        return RefLog.SetAsync("HEAD", headRef, message, cancellationToken);
+    }
 }

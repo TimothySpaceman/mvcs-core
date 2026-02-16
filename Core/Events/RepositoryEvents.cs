@@ -2,16 +2,30 @@
 
 public class RepositoryEvents : IRepositoryEvents
 {
-    public event Action<CommitEventArgs>? OnCommit;
-    public event Action<CheckoutEventArgs>? OnCheckout;
+    public event Func<CommitEventArgs, CancellationToken, Task>? OnCommitAsync;
+    public event Func<CheckoutEventArgs, CancellationToken, Task>? OnCheckoutAsync;
 
-    public void NotifyOnCommit(CommitEventArgs args)
+    public async Task NotifyOnCommitAsync(CommitEventArgs args, CancellationToken cancellationToken = default)
     {
-        OnCommit?.Invoke(args);
+        if (OnCommitAsync == null) return;
+
+        var handlers = OnCommitAsync.GetInvocationList();
+        foreach (Func<CommitEventArgs, CancellationToken, Task> handler in handlers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await handler(args, cancellationToken);
+        }
     }
 
-    public void NotifyOnCheckout(CheckoutEventArgs args)
+    public async Task NotifyOnCheckoutAsync(CheckoutEventArgs args, CancellationToken cancellationToken = default)
     {
-        OnCheckout?.Invoke(args);
+        if (OnCheckoutAsync == null) return;
+
+        var handlers = OnCheckoutAsync.GetInvocationList();
+        foreach (Func<CheckoutEventArgs, CancellationToken, Task> handler in handlers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await handler(args, cancellationToken);
+        }
     }
 }
