@@ -4,11 +4,9 @@ namespace Core.Blobs;
 
 public interface IBlobService
 {
-    public BlobMetadata AddMetadata(Stream content);
-    public BlobMetadata? GetMetadata(HashId id);
-
-    public void AddContent(HashId id, Stream content);
-    public Stream? GetContent(HashId id);
-    
-    public BlobMetadata Add(Stream content);
+    public Task<BlobMetadata> AddMetadataAsync(Stream content, CancellationToken cancellationToken = default);
+    public Task<BlobMetadata?> GetMetadataAsync(HashId id, CancellationToken cancellationToken = default);
+    public Task AddContentAsync(HashId id, Stream content, CancellationToken cancellationToken = default);
+    public Task<Stream?> GetContentAsync(HashId id, CancellationToken cancellationToken = default);
+    public Task<BlobMetadata> AddAsync(Stream content, CancellationToken cancellationToken = default);
 }

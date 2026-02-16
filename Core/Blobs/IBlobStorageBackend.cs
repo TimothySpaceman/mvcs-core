@@ -4,7 +4,9 @@ namespace Core.Blobs;
 
 public interface IBlobStorageBackend
 {
-    public Stream? GetBlob(HashId id);
-    public void PutBlob(HashId id, Stream content);
-    public bool RemoveBlob(HashId id);
+    public Task<Stream?> GetBlobAsync(HashId id, CancellationToken cancellationToken = default);
+
+    public Task PutBlobAsync(HashId id, Stream content, CancellationToken cancellationToken = default);
+
+    public Task<bool> RemoveBlobAsync(HashId id, CancellationToken cancellationToken = default);
 }
