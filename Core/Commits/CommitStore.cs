@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Hashing;
 using System.Text;
@@ -9,25 +10,26 @@ namespace Core.Commits;
 
 public class CommitStore : ICommitStore
 {
-    private readonly Dictionary<HashId, Commit> _commits = new();
+    private readonly ConcurrentDictionary<HashId, Commit> _commits = new();
 
-    public bool Has(HashId id)
+    public Task<bool> HasAsync(HashId id, CancellationToken cancellationToken = default)
     {
-        return _commits.ContainsKey(id);
-    }
-    
-    public Commit? Get(HashId id)
-    {
-        return _commits.GetValueOrDefault(id);
+        return Task.FromResult(_commits.ContainsKey(id));
     }
 
-    public void Add(Commit commit)
+    public Task<Commit?> GetAsync(HashId id, CancellationToken cancellationToken = default)
     {
-        _commits.Add(commit.Id, commit);
+        return Task.FromResult(_commits.GetValueOrDefault(id));
     }
 
-    public bool Remove(HashId id)
+    public Task AddAsync(Commit commit, CancellationToken cancellationToken = default)
     {
-        return _commits.Remove(id);
+        _commits.TryAdd(commit.Id, commit);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> RemoveAsync(HashId id, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_commits.TryRemove(id, out _));
     }
 }

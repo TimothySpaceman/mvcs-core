@@ -6,8 +6,8 @@ namespace Core.Commits;
 
 public interface ICommitStore
 {
-    public bool Has(HashId id);
-    public Commit? Get(HashId id);
-    public void Add(Commit commit);
-    public bool Remove(HashId id);
+    Task<bool> HasAsync(HashId id, CancellationToken cancellationToken = default);
+    Task<Commit?> GetAsync(HashId id, CancellationToken cancellationToken = default);
+    Task AddAsync(Commit commit, CancellationToken cancellationToken = default);
+    Task<bool> RemoveAsync(HashId id, CancellationToken cancellationToken = default);
 }

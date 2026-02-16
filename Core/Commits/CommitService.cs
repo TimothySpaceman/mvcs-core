@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using Core.Exceptions;
 using Core.FileChanges;
 using Core.FileSnapshots;
@@ -16,41 +17,69 @@ public class CommitService : ICommitService
         _commitStore = commitStore;
     }
 
-    public void AddCommit(Commit commit)
+    public async Task AddCommitAsync(Commit commit, CancellationToken cancellationToken = default)
     {
-        if (_commitStore.Has(commit.Id)) return;
+        if (await _commitStore.HasAsync(commit.Id, cancellationToken).ConfigureAwait(false)) return;
 
-        if (commit.ParentId != null && !_commitStore.Has((HashId)commit.ParentId!))
+        if (
+            commit.ParentId != null &&
+            !await _commitStore.HasAsync((HashId)commit.ParentId!, cancellationToken).ConfigureAwait(false)
+        )
         {
             throw new CommitNotFoundException($"Parent commit with ID {commit.Id} not found");
         }
 
-        _commitStore.Add(commit);
+        await _commitStore.AddAsync(commit, cancellationToken);
     }
 
-    public Commit? GetCommit(HashId id)
+    public async Task<Commit?> GetCommitAsync(HashId id, CancellationToken cancellationToken = default)
     {
-        return _commitStore.Get(id);
+        return await _commitStore.GetAsync(id, cancellationToken).ConfigureAwait(false);
+        ;
     }
 
-    public IEnumerable<Commit> GetCommitsChain(HashId idTo, HashId? idFrom = null)
+    public async IAsyncEnumerable<Commit> GetCommitsChainAsync(
+        HashId idTo,
+        HashId? idFrom = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
     {
-        if (!_commitStore.Has(idTo))
+        if (!await _commitStore.HasAsync(idTo, cancellationToken).ConfigureAwait(false))
         {
             throw new CommitNotFoundException($"Target commit with ID {idTo} not found");
         }
 
-        if (idFrom != null && !_commitStore.Has((HashId)idFrom))
+        if (idFrom != null && !await _commitStore.HasAsync((HashId)idFrom, cancellationToken))
         {
             throw new CommitNotFoundException($"Beginning commit with ID {idFrom} not found");
         }
 
-        return new CommitIterator(_commitStore, idTo, idFrom);
+        var currentId = idTo;
+        while (!currentId.IsEmpty)
+        {
+            var commit = await _commitStore.GetAsync(currentId, cancellationToken).ConfigureAwait(false);
+            if (commit == null) throw new CommitNotFoundException($"Commit {currentId} not found");
+
+            yield return commit;
+
+            if (currentId == idFrom || commit.ParentId == null) break;
+            currentId = (HashId)commit.ParentId;
+        }
     }
 
-    public Snapshot GetSnapshotForCommit(HashId commitId)
+    public async Task<Snapshot> GetSnapshotForCommitAsync(
+        HashId commitId,
+        CancellationToken cancellationToken = default
+    )
     {
-        var history = GetCommitsChain(commitId).Reverse();
+        var chain = GetCommitsChainAsync(commitId, null, cancellationToken).ConfigureAwait(false);
+        var history = new List<Commit>();
+        await foreach (var commit in chain.ConfigureAwait(false))
+        {
+            history.Add(commit);
+        }
+
+        history.Reverse();
 
         var files = new Dictionary<string, FileSnapshot>();
 

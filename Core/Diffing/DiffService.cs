@@ -11,7 +11,8 @@ public class DiffService : IDiffService
     {
         var changes = new List<FileChange>();
 
-        var paths = snapshotA.Files.Keys.Concat(snapshotB.Files.Keys).Distinct();
+        var paths = new HashSet<string>(snapshotA.Files.Keys);
+        paths.UnionWith(snapshotB.Files.Keys);
         foreach (var path in paths)
         {
             var before = snapshotA.Files.GetValueOrDefault(path);
