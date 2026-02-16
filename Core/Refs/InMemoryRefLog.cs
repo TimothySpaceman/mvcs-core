@@ -3,7 +3,7 @@ using Core.Storage;
 
 namespace Core.Refs;
 
-public class RefLog : IRefLog
+public class InMemoryRefLog : IRefLog
 {
     private readonly ConcurrentDictionary<string, HashId> _currentRefs = new();
     private readonly ConcurrentDictionary<string, List<ReflogEntry>> _logs = new();

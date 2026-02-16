@@ -4,7 +4,7 @@ using Core.Storage;
 
 namespace Core.Blobs;
 
-public class BlobMetadataStore : IBlobMetadataStore
+public class InMemoryBlobMetadataStore : IBlobMetadataStore
 {
     private readonly ConcurrentDictionary<HashId, BlobMetadata> _blobs = new();
 

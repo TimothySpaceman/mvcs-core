@@ -8,7 +8,7 @@ using Core.Storage;
 
 namespace Core.Commits;
 
-public class CommitStore : ICommitStore
+public class InMemoryCommitStore : ICommitStore
 {
     private readonly ConcurrentDictionary<HashId, Commit> _commits = new();
 
