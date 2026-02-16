@@ -5,10 +5,14 @@ namespace Core.Commits;
 
 public interface ICommitService
 {
-    public void AddCommit(Commit commit);
-    public Commit? GetCommit(HashId id);
+    public Task AddCommitAsync(Commit commit, CancellationToken cancellationToken = default);
+    public Task<Commit?> GetCommitAsync(HashId id, CancellationToken cancellationToken = default);
 
-    public IEnumerable<Commit> GetCommitsChain(HashId idTo, HashId? idFrom = null);
+    public IAsyncEnumerable<Commit> GetCommitsChainAsync(
+        HashId idTo,
+        HashId? idFrom = null,
+        CancellationToken cancellationToken = default
+    );
 
-    public Snapshot GetSnapshotForCommit(HashId commitId);
+    public Task<Snapshot> GetSnapshotForCommitAsync(HashId commitId, CancellationToken cancellationToken = default);
 }

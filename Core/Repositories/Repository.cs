@@ -1,4 +1,5 @@
-﻿using Core.Blobs;
+﻿using System.Runtime.CompilerServices;
+using Core.Blobs;
 using Core.Commits;
 using Core.Diffing;
 using Core.FileChanges;
@@ -14,27 +15,24 @@ public class Repository : IRepository
 {
     private readonly RepositoryContext _context;
 
-    public IgnoreRuleSet IgnoreRuleSet
-    {
-        get => _context.IgnoreRuleSet;
-    }
+    public IgnoreRuleSet IgnoreRuleSet => _context.IgnoreRuleSet;
 
-    public event EventHandler<CommitEventArgs> OnCommit;
-    public event EventHandler<CheckoutEventArgs> OnCheckout;
+    public event Func<CommitEventArgs, CancellationToken, Task>? OnCommitAsync;
+    public event Func<CheckoutEventArgs, CancellationToken, Task>? OnCheckoutAsync;
 
     public Repository(
         IBlobService blobService,
         ICommitService commitService,
         IDiffService diffService,
         IWorkingDirectory workingDirectory,
-        IRefStore refStore
+        IRefLog refLog
     )
     {
         var ignoreRules = new IgnoreRuleSet();
         var eventBus = new RepositoryEvents();
 
         _context = new RepositoryContext(
-            blobService, commitService, diffService, workingDirectory, refStore, ignoreRules, eventBus
+            blobService, commitService, diffService, workingDirectory, refLog, ignoreRules, eventBus
         );
 
         SetupEventProxies();
@@ -42,32 +40,62 @@ public class Repository : IRepository
 
     private void SetupEventProxies()
     {
-        _context.Events.OnCommit += (args) => OnCommit?.Invoke(this, args);
-        _context.Events.OnCheckout += (args) => OnCheckout?.Invoke(this, args);
+        _context.Events.OnCommitAsync += async (args, token) =>
+        {
+            if (OnCommitAsync == null) return;
+
+            var handlers = OnCommitAsync.GetInvocationList();
+            foreach (Func<CommitEventArgs, CancellationToken, Task> handler in handlers)
+            {
+                token.ThrowIfCancellationRequested();
+                await handler(args, token);
+            }
+        };
+
+        _context.Events.OnCheckoutAsync += async (args, token) =>
+        {
+            if (OnCheckoutAsync == null) return;
+
+            var handlers = OnCheckoutAsync.GetInvocationList();
+            foreach (Func<CheckoutEventArgs, CancellationToken, Task> handler in handlers)
+            {
+                token.ThrowIfCancellationRequested();
+                await handler(args, token);
+            }
+        };
     }
 
-    public T Execute<T>(IRepositoryCommand<T> command)
+    public async Task<T> ExecuteAsync<T>(IRepositoryCommand<T> command, CancellationToken cancellationToken = default)
     {
-        return command.Execute(_context);
+        return await command.ExecuteAsync(_context, cancellationToken).ConfigureAwait(false);
     }
 
-    public Commit Commit(string message, IEnumerable<FileChange> changes)
+    public async Task<Commit> CommitAsync(string message, IEnumerable<FileChange> changes,
+        CancellationToken cancellationToken = default)
     {
-        return Execute(new CommitCommand(message, changes));
+        return await ExecuteAsync(new CommitCommand(message, changes), cancellationToken).ConfigureAwait(false);
     }
 
-    public void CheckoutCommit(HashId commitId, bool force = false)
+    public async Task CheckoutCommitAsync(HashId commitId, bool force = false,
+        CancellationToken cancellationToken = default)
     {
-        Execute(new CheckoutCommand(commitId, force));
+        await ExecuteAsync(new CheckoutCommand(commitId, force), cancellationToken).ConfigureAwait(false);
     }
 
-    public IEnumerable<FileChange> GetStatus()
+    public async Task<IEnumerable<FileChange>> GetStatusAsync(CancellationToken cancellationToken = default)
     {
-        return Execute(new GetStatusCommand());
+        return await ExecuteAsync(new GetStatusCommand(), cancellationToken).ConfigureAwait(false);
     }
 
-    public IEnumerable<Commit> GetCommitsHistory()
+    public async IAsyncEnumerable<Commit> GetCommitsHistoryAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
     {
-        return Execute(new GetHistoryCommand());
+        var commitStream = await ExecuteAsync(new GetHistoryCommand(), cancellationToken).ConfigureAwait(false);
+
+        await foreach (var commit in commitStream.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            yield return commit;
+        }
     }
 }

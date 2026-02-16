@@ -1,6 +1,6 @@
 ﻿namespace Core.Config;
 
-public class ConfigService : IConfigService
+public class InMemoryConfigService : IConfigService
 {
     private readonly Dictionary<string, string?> _config = new();
 

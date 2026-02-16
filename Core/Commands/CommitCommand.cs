@@ -3,6 +3,7 @@ using Core.Events;
 using Core.FileChanges;
 using Core.Repositories;
 using Core.Storage;
+using FileNotFoundException = Core.Exceptions.FileNotFoundException;
 
 namespace Core.Commands;
 
@@ -17,14 +18,14 @@ public class CommitCommand : IRepositoryCommand<Commit>
         _changes = changes;
     }
 
-    public Commit Execute(RepositoryContext context)
+    public async Task<Commit> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default)
     {
         var commitBuilder = new CommitBuilder();
         var changesArray = _changes.ToArray();
 
         commitBuilder.AddMessage(_message).AddFileChanges(changesArray);
 
-        var headRef = context.GetHeadRef();
+        var headRef = await context.GetHeadRef(cancellationToken);
         if (headRef != null && !((HashId)headRef).IsEmpty)
         {
             commitBuilder.AddParentId((HashId)headRef);
@@ -35,15 +36,29 @@ public class CommitCommand : IRepositoryCommand<Commit>
         foreach (var change in changesArray)
         {
             if (change.After == null) continue;
-            using var contentStream = context.WorkingDirectory.GetFileContent(change.After.FilePath);
-            context.BlobService.Add(contentStream);
+
+            await using var content = await context.WorkingDirectory.GetFileContentAsync(
+                change.After.FilePath,
+                cancellationToken
+            ).ConfigureAwait(false);
+
+            if (content == null)
+            {
+                throw new FileNotFoundException($"File {change.After.FilePath} not found in working directory");
+            }
+
+            await context.BlobService.AddAsync(
+                content,
+                cancellationToken
+            ).ConfigureAwait(false);
         }
 
-        context.CommitService.AddCommit(commit);
-        context.SetHeadRef(commit.Id);
+        await context.CommitService.AddCommitAsync(commit, cancellationToken).ConfigureAwait(false);
+
+        await context.SetHeadRef(commit.Id, "COMMIT", cancellationToken);
 
         var eventArgs = new CommitEventArgs(commit);
-        context.Events.NotifyOnCommit(eventArgs);
+        await context.Events.NotifyOnCommitAsync(eventArgs, cancellationToken).ConfigureAwait(false);
 
         return commit;
     }

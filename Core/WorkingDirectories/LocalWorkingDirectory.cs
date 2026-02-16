@@ -41,12 +41,66 @@ public class LocalWorkingDirectory : IWorkingDirectory
         return matcher;
     }
 
-    public Stream GetFileContent(string filePath)
+    private string GetFullPath(string filePath)
     {
-        return File.OpenRead(Path.Combine(_rootPath, filePath));
+        return Path.Combine(Path.GetFullPath(_rootPath), filePath);
     }
 
-    public Snapshot GetCurrentSnapshot(IgnoreRuleSet? ignoreRules = null)
+    public Task<Stream?> GetFileContentAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        var fullPath = Path.Combine(_rootPath, filePath);
+        if (!File.Exists(fullPath)) return Task.FromResult<Stream?>(null);
+
+        Stream stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            FileOptions.Asynchronous
+        );
+
+        return Task.FromResult<Stream?>(stream);
+    }
+
+    public async Task PutFileContentAsync(
+        string filePath,
+        Stream content,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var fullPath = GetFullPath(filePath);
+
+        var fileDir = Path.GetDirectoryName(fullPath);
+        if (fileDir != null && !Directory.Exists(fileDir))
+        {
+            Directory.CreateDirectory(fileDir);
+        }
+
+        await using var fileStream = new FileStream(
+            fullPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.Asynchronous
+        );
+
+        await content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
+
+        content.Seek(0, SeekOrigin.Begin);
+    }
+
+    public Task DeleteFileAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        File.Delete(filePath);
+        return Task.CompletedTask;
+    }
+
+    public async Task<Snapshot> GetCurrentSnapshotAsync(
+        IgnoreRuleSet? ignoreRules = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var matcher = GetMatcherForRules(ignoreRules);
         var filePaths = matcher.GetResultsInFullPath(_rootPath);
@@ -56,8 +110,12 @@ public class LocalWorkingDirectory : IWorkingDirectory
         {
             var relativePath = Path.GetRelativePath(Path.GetFullPath(_rootPath), filePath);
 
-            using var stream = File.OpenRead(filePath);
-            var blobMetadata = BlobMetadataFactory.CreateMetadata(stream);
+            await using var stream = await GetFileContentAsync(filePath, cancellationToken).ConfigureAwait(false);
+
+            var blobMetadata = await BlobMetadataFactory
+                .CreateMetadataAsync(stream!, cancellationToken)
+                .ConfigureAwait(false);
+
             var fileSnapshot = new FileSnapshot(
                 relativePath,
                 blobMetadata.Id,
@@ -70,34 +128,35 @@ public class LocalWorkingDirectory : IWorkingDirectory
         return new Snapshot(files.ToImmutableDictionary());
     }
 
-    public void ApplySnapshot(Snapshot snapshot, IgnoreRuleSet? ignoreRules = null)
+    public async Task ApplySnapshotAsync(
+        Snapshot snapshot,
+        IgnoreRuleSet? ignoreRules = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var matcher = GetMatcherForRules(ignoreRules);
-        var currentFiles = matcher.GetResultsInFullPath(_rootPath);
-        foreach (var file in currentFiles)
-        {
-            File.Delete(file);
-        }
+        var currentFiles = matcher.GetResultsInFullPath(_rootPath).ToList();
 
-        foreach (var fileEntry in snapshot.Files)
+        foreach (var (filePath, fileSnapshot) in snapshot.Files)
         {
-            var filePath = Path.GetFullPath(Path.Combine(_rootPath, fileEntry.Key));
-            var fileSnapshot = fileEntry.Value;
+            await using var blobStream = await _blobStorageBackend
+                .GetBlobAsync(fileSnapshot.BlobId, cancellationToken)
+                .ConfigureAwait(false);
 
-            using var blobStream = _blobStorageBackend.GetBlob(fileSnapshot.BlobId);
             if (blobStream == null)
             {
                 throw new BlobContentNotFoundException($"Blob content for {fileSnapshot.BlobId} not found");
             }
 
-            var fileDir = Path.GetDirectoryName(filePath);
-            if (fileDir != null && !Directory.Exists(fileDir))
-            {
-                Directory.CreateDirectory(fileDir);
-            }
+            var fullPath = GetFullPath(filePath);
+            currentFiles.Remove(fullPath);
 
-            using var fileStream = File.Create(filePath);
-            blobStream.CopyTo(fileStream);
+            await PutFileContentAsync(filePath, blobStream, cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (var file in currentFiles)
+        {
+            await DeleteFileAsync(file, cancellationToken).ConfigureAwait(false);
         }
     }
 }

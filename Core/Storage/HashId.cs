@@ -7,6 +7,8 @@ public readonly record struct HashId
         Bytes = new ReadOnlyMemory<byte>(hashBytes.ToArray());
     }
 
+    public static HashId Empty => new HashId(new byte[128]);
+
     public ReadOnlyMemory<byte> Bytes { get; init; }
 
     public bool IsEmpty => Bytes.IsEmpty;

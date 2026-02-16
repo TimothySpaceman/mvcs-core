@@ -4,8 +4,8 @@ namespace Core.Blobs;
 
 public interface IBlobMetadataStore
 {
-    public bool Has(HashId id);
-    public BlobMetadata? Get(HashId id);
-    public void Add(BlobMetadata blobMetadata);
-    public bool Remove(HashId id);
+    Task<bool> HasAsync(HashId id, CancellationToken cancellationToken = default);
+    Task<BlobMetadata?> GetAsync(HashId id, CancellationToken cancellationToken = default);
+    Task AddAsync(BlobMetadata blobMetadata, CancellationToken cancellationToken = default);
+    Task<bool> RemoveAsync(HashId id, CancellationToken cancellationToken = default);
 }

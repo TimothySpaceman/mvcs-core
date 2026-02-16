@@ -2,8 +2,8 @@
 
 public interface IRepositoryEvents
 {
-    public event Action<CommitEventArgs>? OnCommit;
-    public event Action<CheckoutEventArgs>? OnCheckout;
-    public void NotifyOnCommit(CommitEventArgs args);
-    public void NotifyOnCheckout(CheckoutEventArgs args);
+    public event Func<CommitEventArgs, CancellationToken, Task>? OnCommitAsync;
+    public event Func<CheckoutEventArgs, CancellationToken, Task>? OnCheckoutAsync;
+    public Task NotifyOnCommitAsync(CommitEventArgs args, CancellationToken cancellationToken = default);
+    public Task NotifyOnCheckoutAsync(CheckoutEventArgs args, CancellationToken cancellationToken = default);
 }

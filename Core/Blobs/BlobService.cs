@@ -13,32 +13,36 @@ public class BlobService : IBlobService
         _storageBackend = storageBackend;
     }
 
-    public BlobMetadata AddMetadata(Stream contentStream)
+    public async Task<BlobMetadata> AddMetadataAsync(Stream content, CancellationToken cancellationToken = default)
     {
-        var metadata = BlobMetadataFactory.CreateMetadata(contentStream);
-        _metadataStore.Add(metadata);
+        var metadata = await BlobMetadataFactory.CreateMetadataAsync(content, cancellationToken).ConfigureAwait(false);
+
+        await _metadataStore.AddAsync(metadata, cancellationToken).ConfigureAwait(false);
+
         return metadata;
     }
 
-    public BlobMetadata? GetMetadata(HashId id)
+    public async Task<BlobMetadata?> GetMetadataAsync(HashId id, CancellationToken cancellationToken = default)
     {
-        return _metadataStore.Get(id);
+        return await _metadataStore.GetAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
-    public void AddContent(HashId id, Stream contentStream)
+    public async Task AddContentAsync(HashId id, Stream content, CancellationToken cancellationToken = default)
     {
-        _storageBackend.PutBlob(id, contentStream);
+        await _storageBackend.PutBlobAsync(id, content, cancellationToken).ConfigureAwait(false);
     }
 
-    public Stream? GetContent(HashId id)
+    public async Task<Stream?> GetContentAsync(HashId id, CancellationToken cancellationToken = default)
     {
-        return _storageBackend.GetBlob(id);
+        return await _storageBackend.GetBlobAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
-    public BlobMetadata Add(Stream contentStream)
+    public async Task<BlobMetadata> AddAsync(Stream content, CancellationToken cancellationToken = default)
     {
-        var metadata = AddMetadata(contentStream);
-        AddContent(metadata.Id, contentStream);
+        var metadata = await AddMetadataAsync(content, cancellationToken).ConfigureAwait(false);
+
+        await AddContentAsync(metadata.Id, content, cancellationToken).ConfigureAwait(false);
+
         return metadata;
     }
 }
