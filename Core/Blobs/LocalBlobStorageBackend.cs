@@ -18,13 +18,13 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
     private string GetBlobDirPath()
     {
         var rootDir = _configService.Get("repo.dir");
-        if (rootDir == null)
+        if (rootDir is null)
         {
             throw new InvalidConfigException("repo.dir config must be set when working with LocalBlobStorageBackend");
         }
 
         var blobDir = _configService.Get("blob.dir");
-        if (blobDir == null)
+        if (blobDir is null)
         {
             throw new InvalidConfigException("blob.dir config must be set when working with LocalBlobStorageBackend");
         }

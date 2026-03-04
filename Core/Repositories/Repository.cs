@@ -42,7 +42,7 @@ public class Repository : IRepository
     {
         _context.Events.OnCommitAsync += async (args, token) =>
         {
-            if (OnCommitAsync == null) return;
+            if (OnCommitAsync is null) return;
 
             var handlers = OnCommitAsync.GetInvocationList();
             foreach (Func<CommitEventArgs, CancellationToken, Task> handler in handlers)
@@ -54,7 +54,7 @@ public class Repository : IRepository
 
         _context.Events.OnCheckoutAsync += async (args, token) =>
         {
-            if (OnCheckoutAsync == null) return;
+            if (OnCheckoutAsync is null) return;
 
             var handlers = OnCheckoutAsync.GetInvocationList();
             foreach (Func<CheckoutEventArgs, CancellationToken, Task> handler in handlers)

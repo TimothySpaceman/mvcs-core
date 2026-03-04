@@ -7,7 +7,7 @@ public record FileChange
 {
     public FileChange(FileSnapshot? before = null, FileSnapshot? after = null)
     {
-        if (before == null && after == null)
+        if (before is null && after is null)
         {
             throw new ArgumentException("Both before and after cannot be null");
         }
@@ -19,10 +19,10 @@ public record FileChange
     public FileSnapshot? Before { get; }
     public FileSnapshot? After { get; }
 
-    public bool HasBothStates => Before != null && After != null;
+    public bool HasBothStates => Before is not null && After is not null;
 
-    public bool IsCreation => Before == null && After != null;
-    public bool IsRemoval => Before != null && After == null;
+    public bool IsCreation => Before is null && After is not null;
+    public bool IsRemoval => Before is not null && After is null;
     
     public bool IsContentChanged => HasBothStates && Before!.BlobId != After!.BlobId;
     public bool IsFilePathChanged => HasBothStates && Before!.FilePath != After!.FilePath;

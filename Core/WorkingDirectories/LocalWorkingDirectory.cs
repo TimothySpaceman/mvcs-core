@@ -24,7 +24,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
     private Matcher GetMatcherForRules(IgnoreRuleSet? ignoreRules = null)
     {
         var rootDir = _configService.Get("repo.dir");
-        if (rootDir == null)
+        if (rootDir is null)
         {
             throw new InvalidConfigException("repo.dir config must be set when working with LocalWorkingDirectory");
         }
@@ -32,7 +32,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
         var matcher = new Matcher();
         matcher.AddInclude("**/*");
         matcher.AddExclude(rootDir);
-        if (ignoreRules != null)
+        if (ignoreRules is not null)
         {
             matcher.AddExcludePatterns(ignoreRules.ExcludeRules);
             matcher.AddIncludePatterns(ignoreRules.IncludeRules);
@@ -72,7 +72,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
         var fullPath = GetFullPath(filePath);
 
         var fileDir = Path.GetDirectoryName(fullPath);
-        if (fileDir != null && !Directory.Exists(fileDir))
+        if (fileDir is not null && !Directory.Exists(fileDir))
         {
             Directory.CreateDirectory(fileDir);
         }
@@ -143,7 +143,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
                 .GetBlobAsync(fileSnapshot.BlobId, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (blobStream == null)
+            if (blobStream is null)
             {
                 throw new BlobContentNotFoundException($"Blob content for {fileSnapshot.BlobId} not found");
             }

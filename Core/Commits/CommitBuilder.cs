@@ -57,7 +57,7 @@ public class CommitBuilder
 
     private void VerifyRequiredFields()
     {
-        if (_message == null)
+        if (_message is null)
         {
             throw new InvalidOperationException("Cannot create a commit without message");
         }
@@ -70,7 +70,7 @@ public class CommitBuilder
 
     private static void HashFileSnapshot(NonCryptographicHashAlgorithm hasher, FileSnapshot? snapshot)
     {
-        if (snapshot == null)
+        if (snapshot is null)
         {
             hasher.Append([0]);
             return;
@@ -89,7 +89,7 @@ public class CommitBuilder
     {
         var hasher = new XxHash128();
 
-        hasher.Append(parentId != null ? ((HashId)parentId).Bytes.Span : [0]);
+        hasher.Append(parentId is not null ? ((HashId)parentId).Bytes.Span : [0]);
         hasher.Append(Encoding.UTF8.GetBytes(message!));
 
         foreach (var change in changes)

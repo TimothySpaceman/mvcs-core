@@ -26,7 +26,7 @@ public class CommitCommand : IRepositoryCommand<Commit>
         commitBuilder.AddMessage(_message).AddFileChanges(changesArray);
 
         var headRef = await context.GetHeadRef(cancellationToken);
-        if (headRef != null && !((HashId)headRef).IsEmpty)
+        if (headRef is not null && !((HashId)headRef).IsEmpty)
         {
             commitBuilder.AddParentId((HashId)headRef);
         }
@@ -35,14 +35,14 @@ public class CommitCommand : IRepositoryCommand<Commit>
 
         foreach (var change in changesArray)
         {
-            if (change.After == null) continue;
+            if (change.After is null) continue;
 
             await using var content = await context.WorkingDirectory.GetFileContentAsync(
                 change.After.FilePath,
                 cancellationToken
             ).ConfigureAwait(false);
 
-            if (content == null)
+            if (content is null)
             {
                 throw new FileNotFoundException($"File {change.After.FilePath} not found in working directory");
             }

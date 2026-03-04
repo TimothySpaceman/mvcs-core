@@ -22,7 +22,7 @@ public class CommitService : ICommitService
         if (await _commitStore.HasAsync(commit.Id, cancellationToken).ConfigureAwait(false)) return;
 
         if (
-            commit.ParentId != null &&
+            commit.ParentId is not null &&
             !await _commitStore.HasAsync((HashId)commit.ParentId!, cancellationToken).ConfigureAwait(false)
         )
         {
@@ -49,7 +49,7 @@ public class CommitService : ICommitService
             throw new CommitNotFoundException($"Target commit with ID {idTo} not found");
         }
 
-        if (idFrom != null && !await _commitStore.HasAsync((HashId)idFrom, cancellationToken))
+        if (idFrom is not null && !await _commitStore.HasAsync((HashId)idFrom, cancellationToken))
         {
             throw new CommitNotFoundException($"Beginning commit with ID {idFrom} not found");
         }
@@ -58,11 +58,11 @@ public class CommitService : ICommitService
         while (!currentId.IsEmpty)
         {
             var commit = await _commitStore.GetAsync(currentId, cancellationToken).ConfigureAwait(false);
-            if (commit == null) throw new CommitNotFoundException($"Commit {currentId} not found");
+            if (commit is null) throw new CommitNotFoundException($"Commit {currentId} not found");
 
             yield return commit;
 
-            if (currentId == idFrom || commit.ParentId == null) break;
+            if (currentId == idFrom || commit.ParentId is null) break;
             currentId = (HashId)commit.ParentId;
         }
     }

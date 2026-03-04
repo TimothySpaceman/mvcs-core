@@ -29,6 +29,7 @@ public class InMemoryRefLog : IRefLog
         oldValue = exists ? oldValue : HashId.Empty;
 
         var entry = new ReflogEntry(
+            key,
             oldValue,
             newValue,
             DateTimeOffset.Now,

@@ -12,5 +12,5 @@ public record Commit(
     DateTimeOffset CreatedAt
 )
 {
-    public bool IsInitial => ParentId == null;
+    public bool IsInitial => ParentId is null;
 }
