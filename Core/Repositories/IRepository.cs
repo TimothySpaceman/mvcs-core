@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using Core.Commands;
 using Core.Commits;
+using Core.Events;
 using Core.FileChanges;
 using Core.Storage;
 using Core.WorkingDirectories;
@@ -10,6 +11,9 @@ namespace Core.Repositories;
 public interface IRepository
 {
     public IgnoreRuleSet IgnoreRuleSet { get; }
+    
+    public event Func<CommitEventArgs, CancellationToken, Task>? OnCommitAsync;
+    public event Func<CheckoutEventArgs, CancellationToken, Task>? OnCheckoutAsync;
 
     public Task<T> ExecuteAsync<T>(IRepositoryCommand<T> command, CancellationToken cancellationToken = default);
 
