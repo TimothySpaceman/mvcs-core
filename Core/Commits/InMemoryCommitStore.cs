@@ -22,6 +22,11 @@ public class InMemoryCommitStore : ICommitStore
         return Task.FromResult(_commits.GetValueOrDefault(id));
     }
 
+    public Task<Dictionary<HashId, Commit>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_commits.ToDictionary(x => x.Key, x => x.Value));
+    }
+
     public Task AddAsync(Commit commit, CancellationToken cancellationToken = default)
     {
         _commits.TryAdd(commit.Id, commit);

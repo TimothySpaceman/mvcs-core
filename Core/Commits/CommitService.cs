@@ -35,7 +35,11 @@ public class CommitService : ICommitService
     public async Task<Commit?> GetCommitAsync(HashId id, CancellationToken cancellationToken = default)
     {
         return await _commitStore.GetAsync(id, cancellationToken).ConfigureAwait(false);
-        ;
+    }
+
+    public async Task<Dictionary<HashId, Commit>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _commitStore.GetAllAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async IAsyncEnumerable<Commit> GetCommitsChainAsync(
