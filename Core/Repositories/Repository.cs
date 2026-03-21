@@ -98,4 +98,8 @@ public class Repository : IRepository
             yield return commit;
         }
     }
+
+    public void Dispose()
+    {
+    }
 }

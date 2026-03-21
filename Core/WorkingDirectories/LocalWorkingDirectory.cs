@@ -40,12 +40,23 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         return matcher;
     }
+    
+    public bool IsIgnored(string relativePath, IgnoreRuleSet? ignoreRules = null)
+    {
+        var matcher = GetMatcherForRules(ignoreRules);
+        return !matcher.Match(relativePath).HasMatches;
+    }
 
     private string GetFullPath(string filePath)
     {
         return Path.Combine(Path.GetFullPath(_rootPath), filePath);
     }
 
+    public bool HasFile(string filePath)
+    {
+        return File.Exists(Path.Combine(_rootPath, filePath));
+    }
+    
     public Task<Stream?> GetFileContentAsync(string filePath, CancellationToken cancellationToken = default)
     {
         var fullPath = Path.Combine(_rootPath, filePath);

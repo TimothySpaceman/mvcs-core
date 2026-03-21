@@ -8,7 +8,7 @@ using Core.WorkingDirectories;
 
 namespace Core.Repositories;
 
-public interface IRepository
+public interface IRepository : IDisposable
 {
     public IgnoreRuleSet IgnoreRuleSet { get; }
     
