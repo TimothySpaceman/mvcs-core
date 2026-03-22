@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using Core.Blobs;
 using Core.Config;
 using Core.Exceptions;
@@ -7,6 +8,14 @@ using Core.Snapshots;
 using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Core.WorkingDirectories;
+
+internal enum CheckoutActions
+{
+    Write,
+    Delete,
+    Skip,
+    Conflict
+}
 
 public class LocalWorkingDirectory : IWorkingDirectory
 {
@@ -40,7 +49,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         return matcher;
     }
-    
+
     public bool IsIgnored(string relativePath, IgnoreRuleSet? ignoreRules = null)
     {
         var matcher = GetMatcherForRules(ignoreRules);
@@ -56,10 +65,10 @@ public class LocalWorkingDirectory : IWorkingDirectory
     {
         return File.Exists(Path.Combine(_rootPath, filePath));
     }
-    
+
     public Task<Stream?> GetFileContentAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        var fullPath = Path.Combine(_rootPath, filePath);
+        var fullPath = GetFullPath(filePath);
         if (!File.Exists(fullPath)) return Task.FromResult<Stream?>(null);
 
         Stream stream = new FileStream(
@@ -104,7 +113,8 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
     public Task DeleteFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        File.Delete(filePath);
+        var fullPath = GetFullPath(filePath);
+        File.Delete(fullPath);
         return Task.CompletedTask;
     }
 
@@ -140,17 +150,52 @@ public class LocalWorkingDirectory : IWorkingDirectory
     }
 
     public async Task ApplySnapshotAsync(
-        Snapshot snapshot,
-        IgnoreRuleSet? ignoreRules = null,
+        Snapshot currentSnapshot,
+        Snapshot targetSnapshot,
+        IgnoreRuleSet? targetIgnoreRules = null,
+        bool force = false,
         CancellationToken cancellationToken = default
     )
     {
-        var matcher = GetMatcherForRules(ignoreRules);
-        var currentFiles = matcher.GetResultsInFullPath(_rootPath).ToList();
+        var localSnapshot = await GetCurrentSnapshotAsync(targetIgnoreRules, cancellationToken);
 
-        foreach (var (filePath, fileSnapshot) in snapshot.Files)
+        var paths = targetSnapshot.Files.Keys
+            .Concat(currentSnapshot.Files.Keys)
+            .Concat(localSnapshot.Files.Keys)
+            .Distinct()
+            .ToList();
+
+        var pathsActions = paths.ToDictionary(
+            path => path,
+            path => GetCheckoutAction(
+                localSnapshot.Files.GetValueOrDefault(path),
+                currentSnapshot.Files.GetValueOrDefault(path),
+                targetSnapshot.Files.GetValueOrDefault(path),
+                targetIgnoreRules
+            )
+        );
+
+        var conflicts = pathsActions.Where(x => x.Value == CheckoutActions.Conflict).ToList();
+
+        if (force)
         {
-            await using var blobStream = await _blobStorageBackend
+            foreach (var conflict in conflicts)
+            {
+                pathsActions[conflict.Key] = targetSnapshot.Files.ContainsKey(conflict.Key)
+                    ? CheckoutActions.Write
+                    : CheckoutActions.Delete;
+            }
+        }
+        else if (conflicts.Count != 0)
+        {
+            throw new WorkdirUnsavedException("Unable to checkout with unsaved changes");
+        }
+
+        var pathsToWrite = pathsActions.Where(x => x.Value == CheckoutActions.Write).Select(x => x.Key);
+        var blobsToWrite = await Task.WhenAll(pathsToWrite.Select(async path =>
+        {
+            var fileSnapshot = targetSnapshot.Files[path];
+            var blobStream = await _blobStorageBackend
                 .GetBlobAsync(fileSnapshot.BlobId, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -159,15 +204,50 @@ public class LocalWorkingDirectory : IWorkingDirectory
                 throw new BlobContentNotFoundException($"Blob content for {fileSnapshot.BlobId} not found");
             }
 
-            var fullPath = GetFullPath(filePath);
-            currentFiles.Remove(fullPath);
+            return (path, blobStream);
+        }));
 
-            await PutFileContentAsync(filePath, blobStream, cancellationToken).ConfigureAwait(false);
-        }
-
-        foreach (var file in currentFiles)
+        foreach (var pair in blobsToWrite)
         {
-            await DeleteFileAsync(file, cancellationToken).ConfigureAwait(false);
+            await PutFileContentAsync(pair.path, pair.blobStream, cancellationToken).ConfigureAwait(false);
         }
+
+        var toDelete = pathsActions
+            .Where(x => x.Value == CheckoutActions.Delete)
+            .Select(x => GetFullPath(x.Key))
+            .ToList();
+        foreach (var fullPath in toDelete)
+        {
+            await DeleteFileAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private CheckoutActions GetCheckoutAction(
+        FileSnapshot? local,
+        FileSnapshot? current,
+        FileSnapshot? target,
+        IgnoreRuleSet? targetIgnoreRules
+    )
+    {
+        bool hasLocal = local is not null, hasCurrent = current is not null, hasTarget = target is not null;
+        var filePath = (local?.FilePath ?? current?.FilePath ?? target?.FilePath)!;
+
+        if (!hasLocal && !hasCurrent && !hasTarget || IsIgnored(filePath, targetIgnoreRules))
+        {
+            return CheckoutActions.Skip;
+        }
+
+        var isDirty = hasCurrent && local?.BlobId != current!.BlobId;
+        var isNew = !hasCurrent && hasLocal;
+
+        if ((isDirty || (isNew && hasTarget)) && local?.BlobId != target?.BlobId)
+        {
+            return CheckoutActions.Conflict;
+        }
+
+        if (hasTarget) return CheckoutActions.Write;
+        if (hasCurrent && local?.BlobId == current!.BlobId) return CheckoutActions.Delete;
+
+        return CheckoutActions.Skip;
     }
 }

@@ -5,6 +5,7 @@ using Core.Diffing;
 using Core.FileChanges;
 using Core.Refs;
 using Core.Commands;
+using Core.Config;
 using Core.Events;
 using Core.Storage;
 using Core.WorkingDirectories;
@@ -21,6 +22,7 @@ public class Repository : IRepository
     public event Func<CheckoutEventArgs, CancellationToken, Task>? OnCheckoutAsync;
 
     public Repository(
+        IConfigService configService,
         IBlobService blobService,
         ICommitService commitService,
         IDiffService diffService,
@@ -32,7 +34,14 @@ public class Repository : IRepository
         var eventBus = new RepositoryEvents();
 
         _context = new RepositoryContext(
-            blobService, commitService, diffService, workingDirectory, refLog, ignoreRules, eventBus
+            configService,
+            blobService,
+            commitService,
+            diffService,
+            workingDirectory,
+            refLog,
+            ignoreRules,
+            eventBus
         );
 
         SetupEventProxies();

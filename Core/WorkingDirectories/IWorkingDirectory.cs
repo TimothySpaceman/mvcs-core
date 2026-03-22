@@ -19,8 +19,10 @@ public interface IWorkingDirectory
     );
 
     public Task ApplySnapshotAsync(
-        Snapshot snapshot,
-        IgnoreRuleSet? ignoreRules = null,
+        Snapshot currentSnapshot,
+        Snapshot targetSnapshot,
+        IgnoreRuleSet? targetIgnoreRuleSet = null,
+        bool force = false,
         CancellationToken cancellationToken = default
     );
 }

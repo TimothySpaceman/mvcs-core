@@ -1,5 +1,6 @@
 ﻿using Core.Blobs;
 using Core.Commits;
+using Core.Config;
 using Core.Diffing;
 using Core.Events;
 using Core.Refs;
@@ -10,6 +11,7 @@ namespace Core.Repositories;
 
 public class RepositoryContext : IRepositoryContext
 {
+    public IConfigService ConfigService { get; }
     public IRepositoryEvents Events { get; }
     public IBlobService BlobService { get; }
     public ICommitService CommitService { get; }
@@ -19,6 +21,7 @@ public class RepositoryContext : IRepositoryContext
     public IgnoreRuleSet IgnoreRuleSet { get; }
 
     public RepositoryContext(
+        IConfigService configService,
         IBlobService blobService,
         ICommitService commitService,
         IDiffService diffService,
@@ -28,6 +31,7 @@ public class RepositoryContext : IRepositoryContext
         IRepositoryEvents events
     )
     {
+        ConfigService = configService;
         BlobService = blobService;
         CommitService = commitService;
         DiffService = diffService;

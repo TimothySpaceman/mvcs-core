@@ -1,5 +1,6 @@
 ﻿using Core.Blobs;
 using Core.Commits;
+using Core.Config;
 using Core.Diffing;
 using Core.Events;
 using Core.Refs;
@@ -12,6 +13,7 @@ public interface IRepositoryContext
 {
     public IRepositoryEvents Events { get; }
 
+    public IConfigService ConfigService { get; }
     public IBlobService BlobService { get; }
     public ICommitService CommitService { get; }
     public IDiffService DiffService { get; }
