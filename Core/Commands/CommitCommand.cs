@@ -1,6 +1,7 @@
 ﻿using Core.Commits;
 using Core.Events;
 using Core.FileChanges;
+using Core.Identities;
 using Core.Repositories;
 using Core.Storage;
 using FileNotFoundException = Core.Exceptions.FileNotFoundException;
@@ -11,11 +12,13 @@ public class CommitCommand : IRepositoryCommand<Commit>
 {
     private readonly string _message;
     private readonly IEnumerable<FileChange> _changes;
+    private readonly UserIdentity _author;
 
-    public CommitCommand(string message, IEnumerable<FileChange> changes)
+    public CommitCommand(string message, IEnumerable<FileChange> changes, UserIdentity author)
     {
         _message = message;
         _changes = changes;
+        _author = author;
     }
 
     public async Task<Commit> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default)
@@ -23,7 +26,7 @@ public class CommitCommand : IRepositoryCommand<Commit>
         var commitBuilder = new CommitBuilder();
         var changesArray = _changes.ToArray();
 
-        commitBuilder.AddMessage(_message).AddFileChanges(changesArray);
+        commitBuilder.AddMessage(_message).AddFileChanges(changesArray).AddAuthor(_author);
 
         var headRef = await context.GetHeadRef(cancellationToken);
         if (headRef is not null && !((HashId)headRef).IsEmpty)

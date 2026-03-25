@@ -7,6 +7,7 @@ using Core.Refs;
 using Core.Commands;
 using Core.Config;
 using Core.Events;
+using Core.Identities;
 using Core.Storage;
 using Core.WorkingDirectories;
 
@@ -79,10 +80,14 @@ public class Repository : IRepository
         return await command.ExecuteAsync(_context, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Commit> CommitAsync(string message, IEnumerable<FileChange> changes,
-        CancellationToken cancellationToken = default)
+    public async Task<Commit> CommitAsync(
+        string message, 
+        IEnumerable<FileChange> changes,
+        UserIdentity author,
+        CancellationToken cancellationToken = default
+        )
     {
-        return await ExecuteAsync(new CommitCommand(message, changes), cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync(new CommitCommand(message, changes, author), cancellationToken).ConfigureAwait(false);
     }
 
     public async Task CheckoutCommitAsync(HashId commitId, bool force = false,

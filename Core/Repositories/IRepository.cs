@@ -3,6 +3,7 @@ using Core.Commands;
 using Core.Commits;
 using Core.Events;
 using Core.FileChanges;
+using Core.Identities;
 using Core.Storage;
 using Core.WorkingDirectories;
 
@@ -20,6 +21,7 @@ public interface IRepository : IDisposable
     public Task<Commit> CommitAsync(
         string message,
         IEnumerable<FileChange> changes,
+        UserIdentity author,
         CancellationToken cancellationToken = default
     );
 
