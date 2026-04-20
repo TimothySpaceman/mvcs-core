@@ -58,7 +58,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
     private string GetFullPath(string filePath)
     {
-        return Path.Combine(Path.GetFullPath(_rootPath), filePath);
+        return Path.Combine(Path.GetFullPath(_rootPath), DenormalizePath(filePath));
     }
 
     public bool HasFile(string filePath)
@@ -66,10 +66,10 @@ public class LocalWorkingDirectory : IWorkingDirectory
         return File.Exists(Path.Combine(_rootPath, filePath));
     }
 
-    public Task<Stream?> GetFileContentAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<Stream?> GetFileContentAsync(string filePath, CancellationToken cancellationToken = default)
     {
         var fullPath = GetFullPath(filePath);
-        if (!File.Exists(fullPath)) return Task.FromResult<Stream?>(null);
+        if (!File.Exists(fullPath)) return null;
 
         Stream stream = new FileStream(
             fullPath,
@@ -80,7 +80,11 @@ public class LocalWorkingDirectory : IWorkingDirectory
             FileOptions.Asynchronous
         );
 
-        return Task.FromResult<Stream?>(stream);
+        if (!IsTextStream(stream)) return stream;
+
+        var normalized = NormalizeLineEndings(stream);
+        await stream.DisposeAsync();
+        return normalized;
     }
 
     public async Task PutFileContentAsync(
@@ -97,6 +101,14 @@ public class LocalWorkingDirectory : IWorkingDirectory
             Directory.CreateDirectory(fileDir);
         }
 
+        Stream sourceStream = content;
+        MemoryStream? denormalizedStream = null;
+        if (IsTextStream(content))
+        {
+            denormalizedStream = DenormalizeLineEndings(content);
+            sourceStream = denormalizedStream;
+        }
+
         await using var fileStream = new FileStream(
             fullPath,
             FileMode.Create,
@@ -105,10 +117,9 @@ public class LocalWorkingDirectory : IWorkingDirectory
             bufferSize: 4096,
             FileOptions.Asynchronous
         );
+        await sourceStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
-        await content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
-
-        content.Seek(0, SeekOrigin.Begin);
+        if (denormalizedStream is not null) await denormalizedStream.DisposeAsync();
     }
 
     public Task DeleteFileAsync(string filePath, CancellationToken cancellationToken = default)
@@ -129,9 +140,9 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         foreach (var filePath in filePaths)
         {
-            var relativePath = Path.GetRelativePath(Path.GetFullPath(_rootPath), filePath);
+            var relativePath = NormalizePath(Path.GetRelativePath(Path.GetFullPath(_rootPath), filePath));
 
-            await using var stream = await GetFileContentAsync(filePath, cancellationToken).ConfigureAwait(false);
+            await using var stream = await GetFileContentAsync(relativePath, cancellationToken).ConfigureAwait(false);
 
             var blobMetadata = await BlobMetadataFactory
                 .CreateMetadataAsync(stream!, cancellationToken)
@@ -209,7 +220,8 @@ public class LocalWorkingDirectory : IWorkingDirectory
 
         foreach (var pair in blobsToWrite)
         {
-            await PutFileContentAsync(pair.path, pair.blobStream, cancellationToken).ConfigureAwait(false);
+            await using var blobStream = pair.blobStream;
+            await PutFileContentAsync(pair.path, blobStream, cancellationToken).ConfigureAwait(false);
         }
 
         var toDelete = pathsActions
@@ -218,7 +230,7 @@ public class LocalWorkingDirectory : IWorkingDirectory
             .ToList();
         foreach (var fullPath in toDelete)
         {
-            await DeleteFileAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            await DeleteFileAsync(DenormalizePath(fullPath), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -249,5 +261,43 @@ public class LocalWorkingDirectory : IWorkingDirectory
         if (hasCurrent && local?.BlobId == current!.BlobId) return CheckoutActions.Delete;
 
         return CheckoutActions.Skip;
+    }
+
+    private static string NormalizePath(string path)
+    {
+        return path.Replace('\\', '/');
+    }
+
+    private static string DenormalizePath(string path)
+    {
+        return path.Replace('/', Path.DirectorySeparatorChar);
+    }
+
+    private static bool IsTextStream(Stream stream)
+    {
+        var buffer = new byte[8000];
+        var read = stream.Read(buffer, 0, buffer.Length);
+        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+        return Array.IndexOf(buffer, (byte)0, 0, read) == -1;
+    }
+
+    private static MemoryStream NormalizeLineEndings(Stream stream)
+    {
+        using var reader = new StreamReader(stream, leaveOpen: true);
+        var content = reader.ReadToEnd().Replace("\r\n", "\n").Replace("\r", "\n");
+        var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
+        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+        return ms;
+    }
+
+    private static MemoryStream DenormalizeLineEndings(Stream stream)
+    {
+        using var reader = new StreamReader(stream, leaveOpen: true);
+        var content = reader.ReadToEnd()
+            .Replace("\r\n", "\n")
+            .Replace("\n", Environment.NewLine);
+        var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
+        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+        return ms;
     }
 }
