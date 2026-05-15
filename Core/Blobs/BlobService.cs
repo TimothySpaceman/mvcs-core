@@ -16,9 +16,15 @@ public class BlobService : IBlobService
     public async Task<BlobMetadata> AddMetadataAsync(Stream content, CancellationToken cancellationToken = default)
     {
         var metadata = await BlobMetadataFactory.CreateMetadataAsync(content, cancellationToken).ConfigureAwait(false);
+        return await AddMetadataAsync(metadata, cancellationToken);
+    }
 
+    public async Task<BlobMetadata> AddMetadataAsync(
+        BlobMetadata metadata,
+        CancellationToken cancellationToken = default
+    )
+    {
         await _metadataStore.AddAsync(metadata, cancellationToken).ConfigureAwait(false);
-
         return metadata;
     }
 

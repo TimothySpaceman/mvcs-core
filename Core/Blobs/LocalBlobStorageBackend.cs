@@ -83,8 +83,6 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         );
 
         await content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
-
-        content.Seek(0, SeekOrigin.Begin);
     }
 
     public Task<bool> RemoveBlobAsync(HashId id, CancellationToken cancellationToken = default)
