@@ -8,23 +8,23 @@ namespace Core.Blobs;
 
 public class LocalBlobStorageBackend : IBlobStorageBackend
 {
-    private readonly IConfigService _configService;
+    protected readonly IConfigService ConfigService;
 
     public LocalBlobStorageBackend(IConfigService configService)
     {
-        _configService = configService;
+        ConfigService = configService;
     }
 
-    private string GetBlobDirPath()
+    protected virtual string GetBlobDirPath()
     {
-        var rootDir = _configService.Get("repo.dir");
-        if (rootDir == null)
+        var rootDir = ConfigService.Get("repo.dir");
+        if (rootDir is null)
         {
             throw new InvalidConfigException("repo.dir config must be set when working with LocalBlobStorageBackend");
         }
 
-        var blobDir = _configService.Get("blob.dir");
-        if (blobDir == null)
+        var blobDir = ConfigService.Get("blob.dir");
+        if (blobDir is null)
         {
             throw new InvalidConfigException("blob.dir config must be set when working with LocalBlobStorageBackend");
         }
@@ -32,12 +32,12 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         return Path.Combine(rootDir, blobDir);
     }
 
-    private string GetBlobPath(HashId id)
+    protected virtual string GetBlobPath(HashId id)
     {
         return Path.Combine(EnsureBlobDir(), id.ToHexString());
     }
 
-    private string EnsureBlobDir()
+    protected virtual string EnsureBlobDir()
     {
         var dirPath = GetBlobDirPath();
 
@@ -83,8 +83,6 @@ public class LocalBlobStorageBackend : IBlobStorageBackend
         );
 
         await content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
-
-        content.Seek(0, SeekOrigin.Begin);
     }
 
     public Task<bool> RemoveBlobAsync(HashId id, CancellationToken cancellationToken = default)

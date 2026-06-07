@@ -13,10 +13,7 @@ public class GetHistoryCommand : IRepositoryCommand<IAsyncEnumerable<Commit>>
     {
         var headRef = await context.GetHeadRef(cancellationToken);
 
-        if (headRef == null)
-        {
-            return EmptyStream();
-        }
+        if (headRef is null) return EmptyStream();
 
         return context.CommitService.GetCommitsChainAsync((HashId)headRef, null, cancellationToken);
     }

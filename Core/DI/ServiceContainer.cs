@@ -36,7 +36,7 @@ public class ServiceContainer
         }
 
         var constructor = implementationType.GetConstructors().FirstOrDefault();
-        if (constructor == null)
+        if (constructor is null)
         {
             throw new InvalidOperationException($"No public constructor found for {implementationType.Name}");
         }

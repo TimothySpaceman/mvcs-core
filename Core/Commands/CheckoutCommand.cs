@@ -1,7 +1,9 @@
 ﻿using Core.Events;
 using Core.Exceptions;
 using Core.Repositories;
+using Core.Snapshots;
 using Core.Storage;
+using Core.WorkingDirectories;
 
 namespace Core.Commands;
 
@@ -18,31 +20,67 @@ public class CheckoutCommand : IRepositoryCommand<bool>
 
     public async Task<bool> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default)
     {
-        var statusCommand = new GetStatusCommand();
-
-        var currentStatus = await statusCommand.ExecuteAsync(context, cancellationToken).ConfigureAwait(false);
-
-        if (!_force && currentStatus.Any())
+        var currentCommitId = await context.GetHeadRef(cancellationToken);
+        var currentSnapshot = new Snapshot([]);
+        if (currentCommitId is not null)
         {
-            throw new WorkdirUnsavedException("Unable to checkout with unsaved changes");
+            currentSnapshot = await context.CommitService.GetSnapshotForCommitAsync(
+                (HashId)currentCommitId,
+                cancellationToken
+            ).ConfigureAwait(false);
         }
 
-        var snapshot = await context.CommitService.GetSnapshotForCommitAsync(
+        var targetSnapshot = await context.CommitService.GetSnapshotForCommitAsync(
             _commitId,
             cancellationToken
         ).ConfigureAwait(false);
 
+        var targetIgnoreRules = await GetIgnoreRulesForTargetAsync(context, targetSnapshot, cancellationToken);
+
         await context.WorkingDirectory.ApplySnapshotAsync(
-            snapshot,
-            context.IgnoreRuleSet,
+            currentSnapshot,
+            targetSnapshot,
+            targetIgnoreRules,
+            _force,
             cancellationToken
-        ).ConfigureAwait(false);
-
+        );
+        
+        context.IgnoreRuleSet.FillFrom(targetIgnoreRules);
         await context.SetHeadRef(_commitId, "CHECKOUT", cancellationToken);
-
+        
         var eventArgs = new CheckoutEventArgs(_commitId, _force);
         await context.Events.NotifyOnCheckoutAsync(eventArgs, cancellationToken).ConfigureAwait(false);
-
+        
         return true;
+    }
+
+    private async Task<IgnoreRuleSet> GetIgnoreRulesForTargetAsync(
+        IRepositoryContext context,
+        Snapshot targetSnapshot,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var ignoreFilePath = context.ConfigService.Get("repo.ignore.path");
+        var targetIgnoreRules = new IgnoreRuleSet();
+        if (ignoreFilePath is null || !targetSnapshot.Files.TryGetValue(ignoreFilePath, out var ignoreFileSnapshot))
+        {
+            return targetIgnoreRules;
+        }
+
+        await using var blobStream = await context.BlobService.GetContentAsync(
+            ignoreFileSnapshot.BlobId,
+            cancellationToken
+        );
+
+        if (blobStream is null)
+        {
+            throw new BlobContentNotFoundException($"Cannot find ignore file content for commit {_commitId}");
+        }
+
+        using var reader = new StreamReader(blobStream);
+        var rules = (await reader.ReadToEndAsync(cancellationToken)).Split(["\r\n", "\n"], StringSplitOptions.None);
+        IgnoreRuleSetParser.HydrateIgnoreRuleSet(targetIgnoreRules, rules);
+        
+        return targetIgnoreRules;
     }
 }

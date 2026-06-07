@@ -5,7 +5,9 @@ using Core.Diffing;
 using Core.FileChanges;
 using Core.Refs;
 using Core.Commands;
+using Core.Config;
 using Core.Events;
+using Core.Identities;
 using Core.Storage;
 using Core.WorkingDirectories;
 
@@ -21,6 +23,7 @@ public class Repository : IRepository
     public event Func<CheckoutEventArgs, CancellationToken, Task>? OnCheckoutAsync;
 
     public Repository(
+        IConfigService configService,
         IBlobService blobService,
         ICommitService commitService,
         IDiffService diffService,
@@ -32,7 +35,14 @@ public class Repository : IRepository
         var eventBus = new RepositoryEvents();
 
         _context = new RepositoryContext(
-            blobService, commitService, diffService, workingDirectory, refLog, ignoreRules, eventBus
+            configService,
+            blobService,
+            commitService,
+            diffService,
+            workingDirectory,
+            refLog,
+            ignoreRules,
+            eventBus
         );
 
         SetupEventProxies();
@@ -42,7 +52,7 @@ public class Repository : IRepository
     {
         _context.Events.OnCommitAsync += async (args, token) =>
         {
-            if (OnCommitAsync == null) return;
+            if (OnCommitAsync is null) return;
 
             var handlers = OnCommitAsync.GetInvocationList();
             foreach (Func<CommitEventArgs, CancellationToken, Task> handler in handlers)
@@ -54,7 +64,7 @@ public class Repository : IRepository
 
         _context.Events.OnCheckoutAsync += async (args, token) =>
         {
-            if (OnCheckoutAsync == null) return;
+            if (OnCheckoutAsync is null) return;
 
             var handlers = OnCheckoutAsync.GetInvocationList();
             foreach (Func<CheckoutEventArgs, CancellationToken, Task> handler in handlers)
@@ -70,10 +80,14 @@ public class Repository : IRepository
         return await command.ExecuteAsync(_context, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Commit> CommitAsync(string message, IEnumerable<FileChange> changes,
-        CancellationToken cancellationToken = default)
+    public async Task<Commit> CommitAsync(
+        string message, 
+        IEnumerable<FileChange> changes,
+        UserIdentity author,
+        CancellationToken cancellationToken = default
+        )
     {
-        return await ExecuteAsync(new CommitCommand(message, changes), cancellationToken).ConfigureAwait(false);
+        return await ExecuteAsync(new CommitCommand(message, changes, author), cancellationToken).ConfigureAwait(false);
     }
 
     public async Task CheckoutCommitAsync(HashId commitId, bool force = false,
@@ -97,5 +111,9 @@ public class Repository : IRepository
         {
             yield return commit;
         }
+    }
+
+    public void Dispose()
+    {
     }
 }

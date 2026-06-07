@@ -13,12 +13,16 @@ public class GetStatusCommand : IRepositoryCommand<IEnumerable<FileChange>>
         var headRef = await context.GetHeadRef(cancellationToken);
         var commitSnapshot = Snapshot.Empty();
 
-        if (headRef != null && !((HashId)headRef).IsEmpty)
+        if (headRef is not null && !((HashId)headRef).IsEmpty)
         {
-            commitSnapshot = await context.CommitService.GetSnapshotForCommitAsync(
+            var rawSnapshot = await context.CommitService.GetSnapshotForCommitAsync(
                 (HashId)headRef,
                 cancellationToken
             ).ConfigureAwait(false);
+            
+            commitSnapshot = rawSnapshot.WithoutFiles(
+                path => context.WorkingDirectory.IsIgnored(path, context.IgnoreRuleSet)
+            );
         }
 
         var workDirSnapshot = await context.WorkingDirectory.GetCurrentSnapshotAsync(

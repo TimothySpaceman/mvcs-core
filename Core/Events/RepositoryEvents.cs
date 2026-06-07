@@ -7,7 +7,7 @@ public class RepositoryEvents : IRepositoryEvents
 
     public async Task NotifyOnCommitAsync(CommitEventArgs args, CancellationToken cancellationToken = default)
     {
-        if (OnCommitAsync == null) return;
+        if (OnCommitAsync is null) return;
 
         var handlers = OnCommitAsync.GetInvocationList();
         foreach (Func<CommitEventArgs, CancellationToken, Task> handler in handlers)
@@ -19,7 +19,7 @@ public class RepositoryEvents : IRepositoryEvents
 
     public async Task NotifyOnCheckoutAsync(CheckoutEventArgs args, CancellationToken cancellationToken = default)
     {
-        if (OnCheckoutAsync == null) return;
+        if (OnCheckoutAsync is null) return;
 
         var handlers = OnCheckoutAsync.GetInvocationList();
         foreach (Func<CheckoutEventArgs, CancellationToken, Task> handler in handlers)

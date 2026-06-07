@@ -4,6 +4,7 @@ using System.IO.Hashing;
 using System.Text;
 using Core.FileChanges;
 using Core.FileSnapshots;
+using Core.Identities;
 using Core.Storage;
 
 namespace Core.Commits;
@@ -14,12 +15,14 @@ public class CommitBuilder
     private string? _message;
     private List<FileChange> _changes = new();
     private DateTimeOffset? _createdAt;
+    private UserIdentity? _author;
 
     public CommitBuilder Reset()
     {
         _parentId = null;
         _message = null;
         _changes = new();
+        _author = null;
         _createdAt = null;
 
         return this;
@@ -48,6 +51,12 @@ public class CommitBuilder
         _changes.AddRange(fileChanges);
         return this;
     }
+    
+    public CommitBuilder AddAuthor(UserIdentity author)
+    {
+        _author = author;
+        return this;
+    }
 
     public CommitBuilder AddCreatedAt(DateTimeOffset createdAt)
     {
@@ -57,7 +66,7 @@ public class CommitBuilder
 
     private void VerifyRequiredFields()
     {
-        if (_message == null)
+        if (_message is null)
         {
             throw new InvalidOperationException("Cannot create a commit without message");
         }
@@ -66,11 +75,16 @@ public class CommitBuilder
         {
             throw new InvalidOperationException("Cannot create a commit with empty changes list");
         }
+        
+        if (_author is null)
+        {
+            throw new InvalidOperationException("Cannot create a commit without author identity");
+        }
     }
 
     private static void HashFileSnapshot(NonCryptographicHashAlgorithm hasher, FileSnapshot? snapshot)
     {
-        if (snapshot == null)
+        if (snapshot is null)
         {
             hasher.Append([0]);
             return;
@@ -84,12 +98,13 @@ public class CommitBuilder
         HashId? parentId,
         string message,
         IEnumerable<FileChange> changes,
+        UserIdentity author,
         DateTimeOffset createdAt
     )
     {
         var hasher = new XxHash128();
 
-        hasher.Append(parentId != null ? ((HashId)parentId).Bytes.Span : [0]);
+        hasher.Append(parentId is not null ? ((HashId)parentId).Bytes.Span : [0]);
         hasher.Append(Encoding.UTF8.GetBytes(message!));
 
         foreach (var change in changes)
@@ -97,6 +112,9 @@ public class CommitBuilder
             HashFileSnapshot(hasher, change.Before);
             HashFileSnapshot(hasher, change.After);
         }
+        
+        hasher.Append(Encoding.UTF8.GetBytes(author.Name));
+        hasher.Append(Encoding.UTF8.GetBytes(author.Email ?? ""));
 
         Span<byte> buffer = stackalloc byte[8];
         BinaryPrimitives.WriteInt64LittleEndian(buffer, createdAt.UtcTicks);
@@ -110,8 +128,8 @@ public class CommitBuilder
         VerifyRequiredFields();
 
         _createdAt ??= DateTimeOffset.Now;
-        var id = GenerateId(_parentId, _message!, _changes, (DateTimeOffset)_createdAt!);
+        var id = GenerateId(_parentId, _message!, _changes, _author!, (DateTimeOffset)_createdAt!);
 
-        return new Commit(id, _parentId, _message!, _changes.ToImmutableArray(), (DateTimeOffset)_createdAt!);
+        return new Commit(id, _parentId, _message!, _changes.ToImmutableArray(), _author!, (DateTimeOffset)_createdAt!);
     }
 }
