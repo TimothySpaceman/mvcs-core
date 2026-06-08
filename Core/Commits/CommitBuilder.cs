@@ -12,6 +12,8 @@ namespace Core.Commits;
 public class CommitBuilder
 {
     private HashId? _parentId;
+    private HashId? _secondParentId;
+    private CommitKind _kind;
     private string? _message;
     private List<FileChange> _changes = new();
     private DateTimeOffset? _createdAt;
@@ -20,6 +22,8 @@ public class CommitBuilder
     public CommitBuilder Reset()
     {
         _parentId = null;
+        _secondParentId = null;
+        _kind = CommitKind.Default;
         _message = null;
         _changes = new();
         _author = null;
@@ -28,9 +32,30 @@ public class CommitBuilder
         return this;
     }
 
+    public CommitBuilder FromCommit(Commit commit)
+    {
+        _message = commit.Message;
+        _changes = commit.Changes.ToList();
+        _author = commit.Author;
+        _createdAt = commit.CreatedAt;
+        return this;
+    }
+
     public CommitBuilder AddParentId(HashId parentId)
     {
         _parentId = parentId;
+        return this;
+    }
+
+    public CommitBuilder AddSecondParentId(HashId secondParentId)
+    {
+        _secondParentId = secondParentId;
+        return this;
+    }
+
+    public CommitBuilder AddKind(CommitKind kind)
+    {
+        _kind = kind;
         return this;
     }
 
@@ -51,7 +76,7 @@ public class CommitBuilder
         _changes.AddRange(fileChanges);
         return this;
     }
-    
+
     public CommitBuilder AddAuthor(UserIdentity author)
     {
         _author = author;
@@ -71,11 +96,6 @@ public class CommitBuilder
             throw new InvalidOperationException("Cannot create a commit without message");
         }
 
-        if (_changes.Count == 0)
-        {
-            throw new InvalidOperationException("Cannot create a commit with empty changes list");
-        }
-        
         if (_author is null)
         {
             throw new InvalidOperationException("Cannot create a commit without author identity");
@@ -96,6 +116,7 @@ public class CommitBuilder
 
     private static HashId GenerateId(
         HashId? parentId,
+        HashId? secondParentId,
         string message,
         IEnumerable<FileChange> changes,
         UserIdentity author,
@@ -105,6 +126,7 @@ public class CommitBuilder
         var hasher = new XxHash128();
 
         hasher.Append(parentId is not null ? ((HashId)parentId).Bytes.Span : [0]);
+        hasher.Append(secondParentId is not null ? ((HashId)secondParentId).Bytes.Span : [0]);
         hasher.Append(Encoding.UTF8.GetBytes(message!));
 
         foreach (var change in changes)
@@ -112,7 +134,7 @@ public class CommitBuilder
             HashFileSnapshot(hasher, change.Before);
             HashFileSnapshot(hasher, change.After);
         }
-        
+
         hasher.Append(Encoding.UTF8.GetBytes(author.Name));
         hasher.Append(Encoding.UTF8.GetBytes(author.Email ?? ""));
 
@@ -128,8 +150,17 @@ public class CommitBuilder
         VerifyRequiredFields();
 
         _createdAt ??= DateTimeOffset.Now;
-        var id = GenerateId(_parentId, _message!, _changes, _author!, (DateTimeOffset)_createdAt!);
+        var id = GenerateId(_parentId, _secondParentId, _message!, _changes, _author!, (DateTimeOffset)_createdAt!);
 
-        return new Commit(id, _parentId, _message!, _changes.ToImmutableArray(), _author!, (DateTimeOffset)_createdAt!);
+        return new Commit(
+            id,
+            _parentId,
+            _secondParentId,
+            _kind,
+            _message!,
+            _changes.ToImmutableArray(),
+            _author!,
+            (DateTimeOffset)_createdAt!
+        );
     }
 }

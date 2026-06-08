@@ -98,6 +98,26 @@ public class CommitService : ICommitService
         return new Snapshot(files.ToImmutableDictionary());
     }
 
+    public async Task<Commit?> FindCommonAncestorAsync(
+        HashId idA,
+        HashId idB,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var ancestorsA = new HashSet<HashId>();
+        await foreach (var commit in GetCommitsChainAsync(idA, null, cancellationToken))
+        {
+            ancestorsA.Add(commit.Id);
+        }
+
+        await foreach (var commit in GetCommitsChainAsync(idB, null, cancellationToken))
+        {
+            if (ancestorsA.Contains(commit.Id)) return commit;
+        }
+
+        return null;
+    }
+
     private static void ApplyFileChange(Dictionary<string, FileSnapshot> files, FileChange change)
     {
         if (change.IsCreation)
