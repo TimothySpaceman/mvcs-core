@@ -8,6 +8,13 @@ public class InMemoryRefLog : IRefLog
     private readonly ConcurrentDictionary<string, HashId> _currentRefs = new();
     private readonly ConcurrentDictionary<string, List<ReflogEntry>> _logs = new();
 
+    public Task<IReadOnlyDictionary<string, HashId>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyDictionary<string, HashId>>(
+            _currentRefs.ToDictionary(x => x.Key, x => x.Value)
+        );
+    }
+
     public Task<HashId?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
