@@ -19,11 +19,13 @@ public record FileChange
     public FileSnapshot? Before { get; }
     public FileSnapshot? After { get; }
 
+    public FileChange Invert() => new FileChange(After, Before);
+
     public bool HasBothStates => Before is not null && After is not null;
 
     public bool IsCreation => Before is null && After is not null;
     public bool IsRemoval => Before is not null && After is null;
-    
+
     public bool IsContentChanged => HasBothStates && Before!.BlobId != After!.BlobId;
     public bool IsFilePathChanged => HasBothStates && Before!.FilePath != After!.FilePath;
     public bool IsModification => IsContentChanged || IsFilePathChanged;

@@ -25,4 +25,9 @@ public class DiffService : IDiffService
 
         return changes.ToImmutableArray();
     }
+
+    public ImmutableArray<FileChange> InvertChanges(ImmutableArray<FileChange> changes)
+    {
+        return changes.Select(c => c.Invert()).ToImmutableArray();
+    }
 }
