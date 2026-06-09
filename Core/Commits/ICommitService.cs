@@ -15,11 +15,28 @@ public interface ICommitService
         CancellationToken cancellationToken = default
     );
 
-    public Task<Snapshot> GetSnapshotForCommitAsync(HashId commitId, CancellationToken cancellationToken = default);
+    public IAsyncEnumerable<Commit> GetCommitsChainAsync(
+        HashId idTo,
+        HashId? idFrom,
+        IReadOnlyList<Commit> supplement,
+        CancellationToken cancellationToken = default
+    );
+
+    public Task<Snapshot> GetSnapshotForCommitAsync(
+        HashId commitId,
+        CancellationToken cancellationToken = default
+    );
+
+    public Task<Snapshot> GetSnapshotForCommitAsync(
+        HashId commitId,
+        IReadOnlyList<Commit> supplement,
+        CancellationToken cancellationToken = default
+    );
 
     public Task<Commit?> FindCommonAncestorAsync(
         HashId idA,
         HashId idB,
+        IReadOnlyList<Commit>? supplement = null,
         CancellationToken cancellationToken = default
     );
 }
