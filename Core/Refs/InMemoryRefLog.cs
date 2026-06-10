@@ -5,12 +5,12 @@ namespace Core.Refs;
 
 public class InMemoryRefLog : IRefLog
 {
-    private readonly ConcurrentDictionary<string, HashId> _currentRefs = new();
+    private readonly ConcurrentDictionary<string, HashId?> _currentRefs = new();
     private readonly ConcurrentDictionary<string, List<ReflogEntry>> _logs = new();
 
-    public Task<IReadOnlyDictionary<string, HashId>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyDictionary<string, HashId?>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IReadOnlyDictionary<string, HashId>>(
+        return Task.FromResult<IReadOnlyDictionary<string, HashId?>>(
             _currentRefs.ToDictionary(x => x.Key, x => x.Value)
         );
     }
@@ -25,7 +25,7 @@ public class InMemoryRefLog : IRefLog
 
     public Task SetAsync(
         string key,
-        HashId newValue,
+        HashId? newValue,
         string message,
         CancellationToken cancellationToken = default
     )
@@ -33,7 +33,7 @@ public class InMemoryRefLog : IRefLog
         cancellationToken.ThrowIfCancellationRequested();
 
         var exists = _currentRefs.TryGetValue(key, out var oldValue);
-        oldValue = exists ? oldValue : HashId.Empty;
+        oldValue = exists ? oldValue : null;
 
         var entry = new ReflogEntry(
             key,
