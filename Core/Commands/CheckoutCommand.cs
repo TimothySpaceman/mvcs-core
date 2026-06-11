@@ -11,11 +11,13 @@ public class CheckoutCommand : IRepositoryCommand<bool>
 {
     private readonly HashId _commitId;
     private readonly bool _force;
+    private readonly bool _silent;
 
-    public CheckoutCommand(HashId commitId, bool force = false)
+    public CheckoutCommand(HashId commitId, bool force = false, bool silent = false)
     {
         _commitId = commitId;
         _force = force;
+        _silent = silent;
     }
 
     public async Task<bool> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default)
@@ -44,13 +46,16 @@ public class CheckoutCommand : IRepositoryCommand<bool>
             _force,
             cancellationToken
         );
-        
+
         context.IgnoreRuleSet.FillFrom(targetIgnoreRules);
         await context.SetHeadRef(_commitId, "CHECKOUT", cancellationToken);
-        
-        var eventArgs = new CheckoutEventArgs(_commitId, _force);
-        await context.Events.NotifyOnCheckoutAsync(eventArgs, cancellationToken).ConfigureAwait(false);
-        
+
+        if (!_silent)
+        {
+            var eventArgs = new CheckoutEventArgs(_commitId, _force);
+            await context.Events.NotifyOnCheckoutAsync(eventArgs, cancellationToken).ConfigureAwait(false);
+        }
+
         return true;
     }
 
@@ -80,7 +85,7 @@ public class CheckoutCommand : IRepositoryCommand<bool>
         using var reader = new StreamReader(blobStream);
         var rules = (await reader.ReadToEndAsync(cancellationToken)).Split(["\r\n", "\n"], StringSplitOptions.None);
         IgnoreRuleSetParser.HydrateIgnoreRuleSet(targetIgnoreRules, rules);
-        
+
         return targetIgnoreRules;
     }
 }

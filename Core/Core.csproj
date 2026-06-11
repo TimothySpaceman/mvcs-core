@@ -13,6 +13,6 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <Version>0.1.11</Version>
+        <Version>0.2.3</Version>
     </PropertyGroup>
 </Project>

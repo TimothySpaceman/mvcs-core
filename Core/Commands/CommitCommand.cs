@@ -13,12 +13,14 @@ public class CommitCommand : IRepositoryCommand<Commit>
     private readonly string _message;
     private readonly IEnumerable<FileChange> _changes;
     private readonly UserIdentity _author;
+    private readonly bool _silent;
 
-    public CommitCommand(string message, IEnumerable<FileChange> changes, UserIdentity author)
+    public CommitCommand(string message, IEnumerable<FileChange> changes, UserIdentity author, bool silent = false)
     {
         _message = message;
         _changes = changes;
         _author = author;
+        _silent = silent;
     }
 
     public async Task<Commit> ExecuteAsync(RepositoryContext context, CancellationToken cancellationToken = default)
@@ -60,8 +62,11 @@ public class CommitCommand : IRepositoryCommand<Commit>
 
         await context.SetHeadRef(commit.Id, "COMMIT", cancellationToken);
 
-        var eventArgs = new CommitEventArgs(commit);
-        await context.Events.NotifyOnCommitAsync(eventArgs, cancellationToken).ConfigureAwait(false);
+        if (!_silent)
+        {
+            var eventArgs = new CommitEventArgs(commit);
+            await context.Events.NotifyOnCommitAsync(eventArgs, cancellationToken).ConfigureAwait(false);
+        }
 
         return commit;
     }
